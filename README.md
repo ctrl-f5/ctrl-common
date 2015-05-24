@@ -1,7 +1,7 @@
 Ctrl Common
 ===============
 
-[![Build Status](https://travis-ci.org/ctrl-f5/ctrl-common.svg)](https://travis-ci.org/ctrl-f5/ctrl-common)
+[![Build Status](https://travis-ci.org/ctrl-f5/ctrl-common.svg)](https://travis-ci.org/ctrl-f5/ctrl-common) [![Code Climate](https://codeclimate.com/github/ctrl-f5/ctrl-common/badges/gpa.svg)](https://codeclimate.com/github/ctrl-f5/ctrl-common) [![Test Coverage](https://codeclimate.com/github/ctrl-f5/ctrl-common/badges/coverage.svg)](https://codeclimate.com/github/ctrl-f5/ctrl-common/coverage)
 
 What's inside?
 --------------
