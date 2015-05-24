@@ -40,7 +40,7 @@ before_script:
   - composer update --prefer-dist --no-interaction $COMPOSER_FLAGS
 
 after_script:
-  - CODECLIMATE_REPO_TOKEN=34a179db63627817d4e2cfaa793010aad7a88f1cb997407471e4a012ca9118d2 ./vendor/bin/test-reporter
+  - CODECLIMATE_REPO_TOKEN=aa842b55fe5c7c1ddab1feb20f04b51c8f7e58868a212d42e6c97bf76d635be7 ./vendor/bin/test-reporter
 
 script: phpunit --coverage-clover build/logs/clover.xml
 
