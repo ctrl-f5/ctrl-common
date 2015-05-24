@@ -1,7 +1,7 @@
 {
     "name": "ctrl-f5/ctrl-common",
     "type": "library",
-    "description": "CtrlDomain",
+    "description": "CtrlCommon",
     "keywords": ["Ctrl-F5", "Domain Layer", "Service Layer", "Entity Finder", "Entity Criteria", "Doctrine Tools"],
     "homepage": "http://www.ctrl-f5.net",
     "license": "MIT",
