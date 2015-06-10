@@ -79,7 +79,7 @@ class Paginator extends \Doctrine\ORM\Tools\Pagination\Paginator
 
         if (isset($request['pager']) && is_array($request['pager'])) {
             if (isset($request['pager']['page'])) $page = $request['pager']['page'];
-            if (isset($request['pager']['pageSize'])) $page = $request['pager']['pageSize'];
+            if (isset($request['pager']['pageSize'])) $pageSize = $request['pager']['pageSize'];
         }
 
         $this->currentPage = (int)$page;
