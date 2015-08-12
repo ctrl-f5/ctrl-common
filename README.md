@@ -14,3 +14,17 @@ What's inside?
     - Resolver implementation that applies criteria to Doctrine QueryBuilder
 * Tools
     - Extended Doctrine Paginator with extra features
+    - Symfony Commands to dump or import to and from sql files
+    
+Symfony Configuration
+---------------------
+
+There is a yml file which loads up some config for symfony, like registering the commands.
+
+To add this config, add the following file to your `config.yml`:
+
+```yml
+imports:
+    ...
+    - { resource: ../../vendor/ctrl-f5/ctrl-common/Resources/config/symfony_services_commands.yml }
+```

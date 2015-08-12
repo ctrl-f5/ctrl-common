@@ -1,0 +1,9 @@
+services:
+    app.command.db_dump:
+        class: Ctrl\Common\Command\DatabaseDumpCommand
+        tags:
+            -  { name: console.command }
+    app.command.db_import:
+        class: Ctrl\Common\Command\DatabaseImportCommand
+        tags:
+            -  { name: console.command }
