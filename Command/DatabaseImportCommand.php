@@ -45,21 +45,21 @@ class DatabaseImportCommand extends ContainerAwareCommand
         if ($input->getOption('gzip')) {
             $file = "gzip -dc < $file";
             $command = sprintf(
-              '%s | mysql --host=%s --user=%s --password=%s %s',
-              $file,
-              escapeshellarg($c->getParameter('database_host')),
-              escapeshellarg($c->getParameter('database_user')),
-              escapeshellarg($c->getParameter('database_password')),
-              escapeshellarg($c->getParameter('database_name'))
+                '%s | mysql --host=%s --user=%s --password=%s %s',
+                $file,
+                escapeshellarg($c->getParameter('database_host')),
+                escapeshellarg($c->getParameter('database_user')),
+                escapeshellarg($c->getParameter('database_password')),
+                escapeshellarg($c->getParameter('database_name'))
             );
         } else {
             $command = sprintf(
-              'mysql --host=%s --user=%s --password=%s %s < %s',
-              escapeshellarg($c->getParameter('database_host')),
-              escapeshellarg($c->getParameter('database_user')),
-              escapeshellarg($c->getParameter('database_password')),
-              escapeshellarg($c->getParameter('database_name')),
-              $file
+                'mysql --host=%s --user=%s --password=%s %s < %s',
+                escapeshellarg($c->getParameter('database_host')),
+                escapeshellarg($c->getParameter('database_user')),
+                escapeshellarg($c->getParameter('database_password')),
+                escapeshellarg($c->getParameter('database_name')),
+                $file
             );
         }
 

@@ -13,19 +13,19 @@ class DatabaseDumpCommand extends ContainerAwareCommand
     protected function configure()
     {
         $this
-          ->setName('ctrl:db:dump')
-          ->setDescription('dump the configured mysql database')
-          ->addArgument(
-            'output',
-            InputArgument::REQUIRED,
-            'Location of the generated dump file'
-          )
-          ->addOption(
-            'gzip',
-            null,
-            InputOption::VALUE_NONE,
-            'If set, the database dump will be gzipped'
-          )
+            ->setName('ctrl:db:dump')
+            ->setDescription('dump the configured mysql database')
+            ->addArgument(
+                'output',
+                InputArgument::REQUIRED,
+                'Location of the generated dump file'
+            )
+            ->addOption(
+                'gzip',
+                null,
+                InputOption::VALUE_NONE,
+                'If set, the database dump will be gzipped'
+            )
         ;
     }
 
@@ -49,13 +49,13 @@ class DatabaseDumpCommand extends ContainerAwareCommand
         }
 
         exec(sprintf(
-          'mysqldump -h%s -u%s -p%s --disable-keys --add-drop-table --no-tablespaces --create-options --no-create-db %s %s > %s',
-          escapeshellarg($c->getParameter('database_host')),
-          escapeshellarg($c->getParameter('database_user')),
-          escapeshellarg($c->getParameter('database_password')),
-          escapeshellarg($c->getParameter('database_name')),
-          $gzip,
-          escapeshellarg($outputfile)
+            'mysqldump -h%s -u%s -p%s --disable-keys --add-drop-table --no-tablespaces --create-options --no-create-db %s %s > %s',
+            escapeshellarg($c->getParameter('database_host')),
+            escapeshellarg($c->getParameter('database_user')),
+            escapeshellarg($c->getParameter('database_password')),
+            escapeshellarg($c->getParameter('database_name')),
+            $gzip,
+            escapeshellarg($outputfile)
         ));
 
         $output->writeln(sprintf('database dump written in %s', $outputfile));
