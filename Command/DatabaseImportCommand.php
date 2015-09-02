@@ -8,24 +8,24 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class DatabaseDumpCommand extends ContainerAwareCommand
+class DatabaseImportCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
         $this
-          ->setName('ctrl:db:dump')
-          ->setDescription('dump the configured mysql database')
-          ->addArgument(
-            'output',
-            InputArgument::REQUIRED,
-            'Location of the generated dump file'
-          )
-          ->addOption(
-            'gzip',
-            null,
-            InputOption::VALUE_NONE,
-            'If set, the database dump will be gzipped'
-          )
+            ->setName('ctrl:db:import')
+            ->setDescription('import a dump into the configured mysql database')
+            ->addArgument(
+                'file',
+                InputArgument::REQUIRED,
+                'Location of the dump to load'
+            )
+            ->addOption(
+                'gzip',
+                null,
+                InputOption::VALUE_NONE,
+                'Set this if the database dump is gzipped and the extension is not .gz'
+            )
         ;
     }
 
@@ -37,27 +37,34 @@ class DatabaseDumpCommand extends ContainerAwareCommand
             throw new \RuntimeException('This command only works for mysql databases');
         }
 
-        $outputfile = $input->getArgument('output');
-        $gzip = '';
-
-        if ($input->getOption('gzip')) {
-            $gzip = ' | gzip';
-
-            if (substr($outputfile, -3) !== '.gz') {
-                $outputfile = $outputfile . '.gz';
-            }
+        $file = $input->getArgument('file');
+        if (substr($file, -3) === '.gz') {
+            $gzip = true;
         }
 
-        exec(sprintf(
-          'mysqldump -h%s -u%s -p%s --disable-keys --add-drop-table --no-tablespaces --create-options --no-create-db %s %s > %s',
-          escapeshellarg($c->getParameter('database_host')),
-          escapeshellarg($c->getParameter('database_user')),
-          escapeshellarg($c->getParameter('database_password')),
-          escapeshellarg($c->getParameter('database_name')),
-          $gzip,
-          escapeshellarg($outputfile)
-        ));
+        if ($input->getOption('gzip')) {
+            $file = "gzip -dc < $file";
+            $command = sprintf(
+              '%s | mysql --host=%s --user=%s --password=%s %s',
+              $file,
+              escapeshellarg($c->getParameter('database_host')),
+              escapeshellarg($c->getParameter('database_user')),
+              escapeshellarg($c->getParameter('database_password')),
+              escapeshellarg($c->getParameter('database_name'))
+            );
+        } else {
+            $command = sprintf(
+              'mysql --host=%s --user=%s --password=%s %s < %s',
+              escapeshellarg($c->getParameter('database_host')),
+              escapeshellarg($c->getParameter('database_user')),
+              escapeshellarg($c->getParameter('database_password')),
+              escapeshellarg($c->getParameter('database_name')),
+              $file
+            );
+        }
 
-        $output->writeln(sprintf('database dump written in %s', $outputfile));
+        exec($command);
+
+        $output->writeln(sprintf('database dump loaded: %s', $input->getArgument('file')));
     }
 }
