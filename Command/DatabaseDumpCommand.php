@@ -36,12 +36,12 @@ class DatabaseDumpCommand extends ContainerAwareCommand
         if ($c->getParameter('database_driver') !== 'pdo_mysql') {
             throw new \RuntimeException('This command only works for mysql databases');
         }
-        
+
         $outputfile = $input->getArgument('output');
-        
+
         if ($input->getOption('gzip')) {
             $gzip = ' | gzip';
-            
+
             if (substr($outputfile, -3) !== '.gz') {
                 $outputfile = $outputfile . '.gz';
             }
@@ -53,7 +53,7 @@ class DatabaseDumpCommand extends ContainerAwareCommand
             escapeshellarg($c->getParameter('database_host')),
             escapeshellarg($c->getParameter('database_user')),
             escapeshellarg($c->getParameter('database_name')),
-            $gzip,
+            escapeshellarg($gzip),
             escapeshellarg($outputfile)
         ));
 

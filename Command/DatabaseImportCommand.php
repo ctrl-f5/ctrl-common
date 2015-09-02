@@ -19,6 +19,12 @@ class DatabaseImportCommand extends ContainerAwareCommand
                 InputArgument::REQUIRED,
                 'Location of the dump to load'
             )
+            ->addOption(
+                'gzip',
+                null,
+                InputOption::VALUE_NONE,
+                'Set this if the database dump is gzipped'
+            )
         ;
     }
 
@@ -30,13 +36,19 @@ class DatabaseImportCommand extends ContainerAwareCommand
             throw new \RuntimeException('This command only works for mysql databases');
         }
 
+        $file = $input->getArgument('file');
+
+        if ($input->getOption('gzip')) {
+            $file = "`gzip -d -c $file`";
+        }
+
         exec(sprintf(
-            'MYSQL_PWD=%s mysql -h%s -u%s %s < %s',
+            'MYSQL_PWD=%s mysql -h%s -u%s %s < `gzip -d -c %s`',
             escapeshellarg($c->getParameter('database_password')),
             escapeshellarg($c->getParameter('database_host')),
             escapeshellarg($c->getParameter('database_user')),
             escapeshellarg($c->getParameter('database_name')),
-            escapeshellarg($input->getArgument('file'))
+            escapeshellarg($file)
         ));
 
         $output->writeln(sprintf('database dump loaded: %s', $input->getArgument('file')));
