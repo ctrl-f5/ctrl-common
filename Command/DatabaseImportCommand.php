@@ -5,6 +5,7 @@ namespace Ctrl\Common\Command;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class DatabaseImportCommand extends ContainerAwareCommand
@@ -23,7 +24,7 @@ class DatabaseImportCommand extends ContainerAwareCommand
                 'gzip',
                 null,
                 InputOption::VALUE_NONE,
-                'Set this if the database dump is gzipped'
+                'Set this if the database dump is gzipped and the extension is not .gz'
             )
         ;
     }
@@ -37,19 +38,32 @@ class DatabaseImportCommand extends ContainerAwareCommand
         }
 
         $file = $input->getArgument('file');
-
-        if ($input->getOption('gzip')) {
-            $file = "`gzip -d -c $file`";
+        if (substr($file, -3) === '.gz') {
+            $gzip = true;
         }
 
-        exec(sprintf(
-            'MYSQL_PWD=%s mysql -h%s -u%s %s < `gzip -d -c %s`',
-            escapeshellarg($c->getParameter('database_password')),
-            escapeshellarg($c->getParameter('database_host')),
-            escapeshellarg($c->getParameter('database_user')),
-            escapeshellarg($c->getParameter('database_name')),
-            escapeshellarg($file)
-        ));
+        if ($input->getOption('gzip')) {
+            $file = "gzip -dc < $file";
+            $command = sprintf(
+                '%s | mysql --host=%s --user=%s --password=%s %s',
+                $file,
+                escapeshellarg($c->getParameter('database_host')),
+                escapeshellarg($c->getParameter('database_user')),
+                escapeshellarg($c->getParameter('database_password')),
+                escapeshellarg($c->getParameter('database_name'))
+            );
+        } else {
+            $command = sprintf(
+                'mysql --host=%s --user=%s --password=%s %s < %s',
+                escapeshellarg($c->getParameter('database_host')),
+                escapeshellarg($c->getParameter('database_user')),
+                escapeshellarg($c->getParameter('database_password')),
+                escapeshellarg($c->getParameter('database_name')),
+                $file
+            );
+        }
+
+        exec($command);
 
         $output->writeln(sprintf('database dump loaded: %s', $input->getArgument('file')));
     }

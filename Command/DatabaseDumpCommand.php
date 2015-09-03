@@ -38,6 +38,7 @@ class DatabaseDumpCommand extends ContainerAwareCommand
         }
 
         $outputfile = $input->getArgument('output');
+        $gzip = '';
 
         if ($input->getOption('gzip')) {
             $gzip = ' | gzip';
@@ -48,15 +49,15 @@ class DatabaseDumpCommand extends ContainerAwareCommand
         }
 
         exec(sprintf(
-            'MYSQL_PWD=%s mysqldump -h%s -u%s %s --disable-keys --add-drop-table --add-drop-trigger --no-tablespaces --create-options --no-create-db %s > %s',
-            escapeshellarg($c->getParameter('database_password')),
+            'mysqldump -h%s -u%s -p%s --disable-keys --add-drop-table --no-tablespaces --create-options --no-create-db %s %s > %s',
             escapeshellarg($c->getParameter('database_host')),
             escapeshellarg($c->getParameter('database_user')),
+            escapeshellarg($c->getParameter('database_password')),
             escapeshellarg($c->getParameter('database_name')),
-            escapeshellarg($gzip),
+            $gzip,
             escapeshellarg($outputfile)
         ));
 
-        $output->writeln(sprintf('database dump written in %s', $input->getArgument('output')));
+        $output->writeln(sprintf('database dump written in %s', $outputfile));
     }
 }
