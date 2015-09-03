@@ -2,6 +2,8 @@
 
 namespace Ctrl\Common\EntityService;
 
+use Ctrl\Common\EntityService\Finder\FinderInterface;
+
 interface ServiceInterface
 {
     /**
