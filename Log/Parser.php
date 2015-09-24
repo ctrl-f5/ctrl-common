@@ -123,7 +123,7 @@ class Parser
      */
     public function getFilterRegex()
     {
-        $filter['date'] = [
+        $filter = [
             'date'          => '',
             'logger.level'  => '',
             'logger'        => '',
