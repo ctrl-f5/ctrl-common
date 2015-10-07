@@ -4,6 +4,11 @@ namespace Ctrl\Common\Criteria;
 
 interface ResolverInterface
 {
+    const T_EXPR        = 'expr';
+    const T_AND         = 'and';
+    const T_OR          = 'or';
+    const T_COMPOUND    = 'comp';
+
     public function __construct($rootAlias);
 
     /**
