@@ -62,4 +62,9 @@ interface FinderInterface
      * @return $this
      */
     public function paginate($page = 1, $pageSize = null);
+
+    /**
+     * @return $this
+     */
+    public function queryBuilder();
 }
