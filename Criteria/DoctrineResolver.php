@@ -2,6 +2,9 @@
 
 namespace Ctrl\Common\Criteria;
 
+use Ctrl\Common\Tools\ArrayHelper;
+use Ctrl\Common\Tools\StringHelper;
+use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 
 class DoctrineResolver implements ResolverInterface
@@ -41,13 +44,100 @@ class DoctrineResolver implements ResolverInterface
      */
     public function applyCriteria($queryBuilder, array $criteria = array())
     {
-        $criteria = $this->unpack($criteria);
+        if (!count($criteria)) {
+            return $this;
+        }
 
-        foreach ($criteria['joins']         as $join => $alias)     $queryBuilder->join($join, $alias);
-        foreach ($criteria['conditions']    as $where)              $queryBuilder->andWhere($where);
-        foreach ($criteria['parameters']    as $key => $value)      $queryBuilder->setParameter($key, $value);
+        $criteria = $this->resolve($criteria);
+
+        foreach ($criteria['joins'] as $join => $alias) {
+            $queryBuilder->join($join, $alias);
+        }
+
+        $queryBuilder->where($this->createQueryExpression($queryBuilder, $criteria['expressions']));
 
         return $this;
+    }
+
+    public function createQueryExpression(QueryBuilder $qb, array $graph = array())
+    {
+        $expr       = null;
+        $logical    = null;
+        if (array_key_exists(self::T_AND, $graph)) {
+            $logical = self::T_AND;
+            $expr = $qb->expr()->andX();
+        } else if (array_key_exists(self::T_OR, $graph)) {
+            $logical = self::T_OR;
+            $expr = $qb->expr()->orX();
+        } else {
+            throw new \InvalidArgumentException('invalid graph given');
+        }
+
+        $graph          = $graph[$logical];
+        $paramIndex     = count($qb->getParameters()) + 1;
+        foreach ($graph as $spec => $value) {
+            if ($spec !== self::T_AND && $spec !== self::T_OR) {
+                list($field, $equation) = explode(' ', $spec, 2);
+                switch ($equation) {
+                    case 'IS NULL':
+                        $func = 'isNull';
+                        break;
+                    case 'IS NOT NULL':
+                        $func = 'isNotNull';
+                        break;
+                    default:
+                        list($comp, $valueSpec) = explode(' ', $equation, 2);
+                        switch ($comp) {
+                            case '=':
+                                $func = 'eq';
+                                break;
+                            case '<>':
+                                $func = 'neq';
+                                break;
+                            case '<':
+                                $func = 'lt';
+                                break;
+                            case '>':
+                                $func = 'gt';
+                                break;
+                            case '<=':
+                                $func = 'lte';
+                                break;
+                            case '>=':
+                                $func = 'gte';
+                                break;
+                            case 'IN':
+                                $func = 'in';
+                                break;
+                            case 'NOT IN':
+                                $func = 'notIn';
+                                break;
+                            case 'LIKE':
+                                $func = 'like';
+                                break;
+                            case 'NOT LIKE':
+                                $func = 'notLike';
+                                break;
+                            default:
+                                throw new \InvalidArgumentException(sprintf('unknown comparison: %s', $comp));
+                        }
+                        if ($valueSpec === '?') {
+                            $expr->add($qb->expr()->$func($field, '?' . $paramIndex));
+                            $qb->setParameter($paramIndex, $value);
+                        } else if (strpos($valueSpec, ':') === 0) {
+                            $expr->add($qb->expr()->$func($field, $valueSpec));
+                            $qb->setParameter(substr($valueSpec, 1), $value);
+                        }
+                        $paramIndex++;
+                        continue 2;
+                }
+                $expr->add($qb->expr()->$func($field));
+            } else {
+                $expr->add($this->createQueryExpression($qb, [$spec => $value]));
+            }
+        }
+
+        return $expr;
     }
 
     /**
@@ -65,7 +155,7 @@ class DoctrineResolver implements ResolverInterface
             $order = is_string($key) ? $val: 'ASC';
             if (strpos($field, $root . '.') !== 0) $field = $root . '.' . $field;
 
-            $config = $this->getFieldConfig($field, false);
+            $config = $this->getFieldConfig($field, $this->getRootAlias());
             $path = $config['path'];
             array_pop($path);
             $joins[] = $path;
@@ -80,59 +170,6 @@ class DoctrineResolver implements ResolverInterface
         return $this;
     }
 
-    public function createGraph($expression)
-    {
-        $result = array();
-        $expression = trim($expression);
-        $len = strlen($expression);
-
-        // search open
-        $open = strpos($expression, '(');
-        // no open? add offset > last
-        if ($open === false) {
-            $result[] = $expression;
-            return $result;
-        }
-
-        // open > offset? add offset => open
-        if ($open > 0) {
-            $result[] = trim(substr($expression, 0, $open));
-        }
-
-        // search close
-        $count = 0;
-        $close = $open;
-        for ($i = $open; $i < $len; $i++) {
-            if ($expression[$i] === '(') {
-                $count++;
-            }
-            if ($expression[$i] === ')') {
-                $count--;
-                if ($count === 0) {
-                    $close = $i;
-                    break;
-                }
-            }
-        }
-
-        // add open to close
-        $subExpr = $this->createGraph(substr($expression, $open + 1, $close - $open - 1));
-        if (count($subExpr) > 1) {
-            $subExpr = array($subExpr);
-        }
-        $result = array_merge($result, $subExpr);
-
-        // close is last? ready
-        if ($close === $len - 1) {
-            return $result;
-        }
-
-        // no next open? add close => last
-        $result = array_merge($result, $this->createGraph(substr($expression, $close + 1)));
-
-        return $result;
-    }
-
     public function tokenize($expressions)
     {
         $tokens = array();
@@ -140,154 +177,122 @@ class DoctrineResolver implements ResolverInterface
         foreach ($expressions as $expr) {
             if (is_array($expr)) {
                 $tokens[][self::T_COMPOUND] = $this->tokenize($expr);
+                continue;
             }
 
-            $expr = trim(strtolower($expr));
-            if (1 === preg_match('/( and )|( and$)|(^and )|(^and$)|( or )|( or$)|(^or )|(^or$)/', $expr)) {
-                $words = explode(' ', $expr);
-                $subExpr = [];
+            $expr = trim($expr);
+            $words = explode(' ', $expr);
+            $subExpr = [];
 
-                foreach ($words as $w) {
-                    if ($w === 'and' || $w === 'or') {
-                        if (count($subExpr)) {
-                            $tokens[][self::T_EXPR] = implode(' ', $subExpr);
-                            $subExpr = [];
-                        }
-                        if ($w === 'and') {
-                            $tokens[][self::T_AND] = 'and';
-                        }
-                        else if ($w === 'or') {
-                            $tokens[][self::T_OR] = 'or';
-                        }
-                    } else {
-                        $subExpr[] = $w;
+            foreach ($words as $w) {
+                $wUpper = strtoupper($w);
+                if ($wUpper === self::T_AND || $wUpper === self::T_OR) {
+                    if (count($subExpr)) {
+                        $tokens[][self::T_EXPR] = implode(' ', $subExpr);
+                        $subExpr = [];
                     }
+                    if ($wUpper === self::T_AND) {
+                        $tokens[][self::T_AND] = self::T_AND;
+                    }
+                    else if ($wUpper === self::T_OR) {
+                        $tokens[][self::T_OR] = self::T_OR;
+                    }
+                } else {
+                    $subExpr[] = $w;
                 }
-                if (count($subExpr)) {
-                    $tokens[][self::T_EXPR] = implode(' ', $subExpr);
-                }
-
-            } else {
-                $tokens[][self::T_EXPR] = $expr;
+            }
+            if (count($subExpr)) {
+                $tokens[][self::T_EXPR] = implode(' ', $subExpr);
             }
         }
 
         return $tokens;
     }
 
-    /**
-     * @param array|string $criteria
-     * @return array
-     */
-    public function unpack($criteria)
+    public function createGraph($expression, $isTokens = false)
     {
-        if (!is_array($criteria)) {
-            $criteria = array($criteria);
+        if ($isTokens) {
+            $parts = $expression;
+        } else {
+            $parts = $this->tokenize(StringHelper::bracesToArray($expression));
         }
 
-        $joins = array();
-        $conditions = array();
-        $parameters = array();
-        $paramCount = 1;
-        $paramAddedCount = 1;
-
-        foreach ($criteria as $key => $val) {
-            $hasValue = is_string($key);
-            $expression = $hasValue ? $key: $val;
-            $values = (array)$val;
-
-            if (!$hasValue && strpos($expression, ' ') === false && strpos($expression, '=') === false) {
-                $joins[] = $expression;
-            } else {
-                $graph = $this->createGraph($expression);
-                $conditions[] = $this->parseGraph($graph, $values);
-            }
-
-        }
-
-        $joins = $this->mergeJoinPaths($joins);
-
-        return array(
-            'joins' => $joins,
-            'conditions' => $conditions,
-            'parameters' => $parameters,
-        );
-    }
-
-    protected function parseGraph(array $graph = array(), array &$values)
-    {
-        $expr = [];
-        foreach ($graph as $sub) {
-            if (is_array($sub)) {
-                $expr[] = '(' . $this->parseGraph($sub, $values) . ')';
-            } else {
-                $tokens = $this->tokenize(array($sub));
-                foreach ($tokens as $token) {
-                    foreach ($token as $type => $value) {
-                        if ($type === self::T_AND || $type === self::T_OR) {
-                            $expr[] = $value;
-                        } else {
-                            $config = $this->getFieldConfig($value, $this->getRootAlias());
-                            $field = $config['field'];
-
-                            $expr[] = $field;
-                        }
+        $logical = self::T_AND;
+        $result = [];
+        $usedLogical = null;
+        foreach ($parts as $part) {
+            foreach ($part as $type => $val) {
+                if ($type === self::T_EXPR) {
+                    $result[] = $val;
+                } else if ($type === self::T_COMPOUND) {
+                    $result[] = $this->createGraph($val, true);
+                }
+                if ($type === self::T_OR) {
+                    if ($usedLogical === self::T_AND) {
+                        throw new \Exception('can not use AND and OR in the same part of condition without braces');
                     }
+                    $logical = self::T_OR;
+                    $usedLogical = self::T_OR;
+                }
+                if ($type === self::T_AND) {
+                    if ($usedLogical === self::T_OR) {
+                        throw new \Exception('can not use AND and OR in the same part of condition without braces');
+                    }
+                    $usedLogical = self::T_AND;
                 }
             }
         }
-        //var_dump($expr);
-        return $expr;
+
+        return [
+            $logical => $result
+        ];
     }
 
-    /**
-     * @param array|string $criteria
-     * @return array
-     */
-    public function unpack_old($criteria)
+    protected function parseGraph(array $graph = array(), array &$values, &$currentKey)
     {
-        $joins = array();
-        $conditions = array();
-        $parameters = array();
-        $paramCount = 1;
-        $paramAddedCount = 1;
+        $expressions = null;
+        $logical = null;
+        if (array_key_exists(self::T_AND, $graph)) {
+            $logical = self::T_AND;
+        } else if (array_key_exists(self::T_OR, $graph)) {
+            $logical = self::T_OR;
+        } else {
+            throw new \InvalidArgumentException('invalid graph given');
+        }
 
-        foreach ((array)$criteria as $key => $val) {
-            $hasValue = is_string($key);
-            $fieldConfig = $hasValue ? $key: $val;
-            $val = (array)$val;
-
-            $expressions = $this->unpackFieldExpression($fieldConfig, $this->getRootAlias());
-            foreach ($expressions as $exr) {
-                $config = $this->getFieldConfig($exr, $hasValue, $paramCount);
-                $path = $config['path'];
-
-                // add conditions and parameters
-                if ($config['is_property']) {
-                    $conditions[] = $config['field'];
-                    if ($config['requires_value']) {
-                        if ($config['has_named_param']) {
-                            $parameters[$config['param_name']] = count($val) === 1 ? array_shift($val): $val[$config['param_name']];
-                        } else {
-                            $parameters[$paramAddedCount] = array_shift($val);
-                            $paramAddedCount++;
-                        }
-                    }
-                    array_pop($path);
+        $expressions    = $graph[$logical];
+        $parsed         = [];
+        $joins          = [];
+        foreach ($expressions as $key => $expr) {
+            if (is_array($expr)) {
+                $subset         = $this->parseGraph($expr, $values, $currentKey);
+                $parsed[]       = $subset['expressions'];
+                $joins          = array_merge($subset['joins']);
+            } else {
+                $config = $this->getFieldConfig($expr, $this->getRootAlias());
+                if ($config['join']) {
+                    $joins[] = $config['join'];
                 }
-
-                // add joins
-                $joins[] = $path;
+                $val = null;
+                if ($config['requires_value']) {
+                    if ($config['has_named_param']) {
+                        $val = $values[$config['param_name']];
+                    } else {
+                        if (!array_key_exists($currentKey, $values)) {
+                            throw new \InvalidArgumentException(sprintf('no value found for expression: %s', $config['expression']));
+                        }
+                        $val = $values[$currentKey];
+                        $currentKey++;
+                    }
+                }
+                $parsed[$config['expression']] = $val;
             }
         }
 
-        $joins = $this->mergeJoinPaths($joins);
-
-        return array(
-            'joins' => $joins,
-            'conditions' => $conditions,
-            'parameters' => $parameters,
-        );
+        return [
+            'joins'         => $joins,
+            'expressions'   => [$logical => $parsed],
+        ];
     }
 
     protected function mergeJoinPaths($joins)
@@ -307,33 +312,9 @@ class DoctrineResolver implements ResolverInterface
         return $merged;
     }
 
-    protected function unpackFieldExpression($expr, $rootAlias)
-    {
-        $result = array();
-        $expr = str_replace(
-            array(' AND ', ' OR '),
-            array(' and ', ' or '),
-            trim(trim($expr), '()')
-        );
-
-        $parts = explode(' and ', $expr);
-        if (count($parts) > 1) {
-            foreach ($parts as $part) {
-                $fields = $this->unpackFieldExpression(trim($part), $rootAlias);
-                $result[] = $fields[0];
-            }
-            return $result;
-        }
-
-        for ($i = 0; $i < count($parts); $i++) {
-            if (strpos($parts[$i], $rootAlias . '.') !== 0) $parts[$i] = $rootAlias . '.' . $parts[$i];
-        }
-
-        return $parts;
-    }
-
     /**
      * @param string $expr
+     * @param string $root
      * @return array
      */
     protected function getFieldConfig($expr, $root)
@@ -352,34 +333,48 @@ class DoctrineResolver implements ResolverInterface
         }
 
         $path = explode('.', $field);
-        $parent = count($path) > 2 ? $path[count($path) - 2]: $path[0];
+        $pathLen = count($path);
         $alias = end($path);
+        $parent = $path[0];
+        $join = null;
 
-        $hasNamedParam = strpos($expr, ' :') !== false;
-        $paramName = $hasNamedParam ? trim(end($parts), ':'): null;
+        if ($pathLen > 2) {
+            $parent = $path[$pathLen - 2];
+            $join = array_slice($path, 0, $pathLen - 1);
+        }
 
         $comp = '=';
         $requiresValue = false;
-        $valueSpec = null;
+        $valueSpec = '';
+        $hasNamedParam = false;
+        $paramName = null;
+        $conditionUpper = strtoupper($condition);
 
-        if ($condition === 'is null') {
+        if ($conditionUpper === 'IS NULL') {
             $comp = 'IS NULL';
-        } else if ($condition === 'is not null') {
+        } else if ($conditionUpper === 'IS NOT NULL') {
             $comp = 'IS NOT NULL';
         } else {
-            foreach (array('IN', '>=', '<=', '<', '>', '=') as $c) {
-                if (strpos($condition, $c) === 0) {
+            foreach (array('IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
+                if (strpos($conditionUpper, $c) === 0) {
                     $comp = $c;
-                    $requiresValue = true;
                     $valueSpec = trim(substr($condition, strlen($c)));
+                    $requiresValue = true;
                     break;
                 }
             }
         }
-        if ($valueSpec !== null && strpos($valueSpec, ':') !== 0 && strpos($valueSpec, '?') !== 0) {
+        if (strpos($valueSpec, ':') === 0) {
+            $hasNamedParam = true;
+            $paramName = trim($valueSpec, ':');
+        }
+        if ($valueSpec !== '') {
             $valueSpec = ' ' . $valueSpec;
+            $requiresValue = $hasNamedParam || strpos($valueSpec, '?') !== false;
         } else {
-            $valueSpec = '';
+            if ($requiresValue) {
+                $valueSpec = ' ?';
+            }
         }
 
         return array(
@@ -387,56 +382,64 @@ class DoctrineResolver implements ResolverInterface
             'alias' => $alias,
             'parent' => $parent,
             'path' => $path,
+            'join' => $join,
             'requires_value' => $requiresValue,
             'has_named_param' => $hasNamedParam,
             'param_name' => $paramName,
-            'field' => $parent . '.' . $alias . ' ' . $comp . $valueSpec,
+            'expression' => $parent . '.' . $alias . ' ' . $comp . $valueSpec,
+            'field' => $parent . '.' . $alias,
         );
     }
 
     /**
-     * @param string $expr
-     * @param bool $hasValue
-     * @param int &$paramCount
+     * @param array|string $criteria
      * @return array
      */
-    protected function getFieldConfig_old($expr, $hasValue, &$paramCount = 0)
+    public function resolve($criteria)
     {
-        $parts = explode(' ', trim($expr, " ()"));
-        $fieldPart = array_shift($parts);
-        $path = explode('.', $fieldPart);
-        $parent = count($path) > 2 ? $path[count($path) - 2]: $path[0];
-        $alias = end($path);
-        $isProp = $hasValue || count($parts) > 1;
+        $single = false;
+        if (!is_array($criteria)) {
+            $criteria = array($criteria);
+            $single = true;
+        }
 
-        $hasNamedParam = strpos($expr, ' :') !== false;
-        $paramName = $hasNamedParam ? trim(end($parts), ':'): null;
+        $joins = array();
+        $expressions = array();
 
-        $comp = '=';
-        $condition = '';
-        $requiresValue = true;
-        if ($isProp) {
-            if (count($parts)) {
-                $condition = implode(' ', $parts);
-                $requiresValue = $hasNamedParam;
+        foreach ($criteria as $key => $val) {
+            $hasValue = is_string($key);
+            $expression = $hasValue ? $key: $val;
+            $values = $hasValue ? (array)$val: array();
+            $currentValKey = 0;
+
+            if (!$hasValue && strpos($expression, ' ') === false) {
+                if (strpos($expression, $this->getRootAlias() . '.') !== 0) {
+                    $expression = $this->getRootAlias() . '.' . $expression;
+                }
+                $joins[] = explode('.', $expression);
             } else {
-                $condition = $comp . ' ?' . $paramCount;
-                $paramCount++;
+                $graph = $this->createGraph($expression);
+                $result = $this->parseGraph($graph, $values, $currentValKey);
+                $joins = array_merge($result['joins'], $joins);
+                $expressions[] = $result['expressions'];
             }
+
+        }
+
+        $joins = $this->mergeJoinPaths($joins);
+        if ($single) {
+            $expressions = $expressions[0];
         } else {
-            $requiresValue = false;
+            $expressions = count($expressions) ? call_user_func_array('array_merge_recursive', $expressions): [];
+            if (array_key_exists(self::T_AND, $expressions) && array_key_exists(self::T_OR, $expressions) && !array_key_exists(self::T_OR, $expressions[self::T_AND])) {
+                $expressions[self::T_AND][self::T_OR] = $expressions[self::T_OR];
+                unset($expressions[self::T_OR]);
+            }
         }
 
         return array(
-            'is_property' => $isProp,
-            'comparison' => $comp,
-            'alias' => $alias,
-            'parent' => $parent,
-            'path' => $path,
-            'requires_value' => $requiresValue,
-            'has_named_param' => $hasNamedParam,
-            'param_name' => $paramName,
-            'field' => $parent . '.' . $alias . ' ' . $condition,
+            'joins' => $joins,
+            'expressions' => $expressions,
         );
     }
 }

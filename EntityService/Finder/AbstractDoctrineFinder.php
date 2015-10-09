@@ -142,6 +142,9 @@ class AbstractDoctrineFinder extends AbstractFinder
             ->applyCriteria($queryBuilder, $criteria)
             ->applyOrderBy($queryBuilder, $orderBy);
 
+        var_dump($queryBuilder->getDQL());
+        var_dump($queryBuilder->getParameters()->toArray());
+
         return $this->assertFinderResult($queryBuilder);
     }
 

@@ -5,8 +5,8 @@ namespace Ctrl\Common\Criteria;
 interface ResolverInterface
 {
     const T_EXPR        = 'expr';
-    const T_AND         = 'and';
-    const T_OR          = 'or';
+    const T_AND         = 'AND';
+    const T_OR          = 'OR';
     const T_COMPOUND    = 'comp';
 
     public function __construct($rootAlias);
@@ -39,12 +39,4 @@ interface ResolverInterface
      * @return $this
      */
     public function applyOrderBy($subject, array $orderBy = array());
-
-    /**
-     * Unpack an array of criteria to single expressions
-     *
-     * @param array|string $criteria
-     * @return array
-     */
-    public function unpack($criteria);
 }

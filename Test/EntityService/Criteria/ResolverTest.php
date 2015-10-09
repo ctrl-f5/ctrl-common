@@ -4,6 +4,7 @@ namespace Ctrl\Common\Test\Criteria;
 
 use Ctrl\Common\Criteria\DoctrineResolver;
 use Ctrl\Common\Criteria\ResolverInterface;
+use Ctrl\Common\Test\EntityService\Criteria\Mock\QueryBuilder;
 
 class ResolverTest extends \PHPUnit_Framework_TestCase
 {
@@ -31,41 +32,6 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         self::assertEquals('newAlias', $resolver->getRootAlias());
     }
 
-    public function test_create_graph()
-    {
-        $resolver = $this->getResolver('root');
-
-        $result = $resolver->createGraph('test');
-        self::assertEquals(['test'], $result);
-
-        $result = $resolver->createGraph('(test)');
-        self::assertEquals(['test'], $result);
-
-        $result = $resolver->createGraph('(((test)))');
-        self::assertEquals(['test'], $result);
-
-        $result = $resolver->createGraph('(test)(test2)');
-        self::assertEquals(['test', 'test2'], $result);
-
-        $result = $resolver->createGraph('(test) and (test2)');
-        self::assertEquals(['test', 'and', 'test2'], $result);
-
-        $result = $resolver->createGraph('test (test2)');
-        self::assertEquals(['test', 'test2'], $result);
-
-        $result = $resolver->createGraph('(test (test2))');
-        self::assertEquals([['test', 'test2']], $result);
-
-        $result = $resolver->createGraph('(test) test3');
-        self::assertEquals(['test', 'test3'], $result);
-
-        $result = $resolver->createGraph('((test) test3)');
-        self::assertEquals([['test', 'test3']], $result);
-
-        $result = $resolver->createGraph('(test) and (test3 (test5))');
-        self::assertEquals(['test', 'and', ['test3', 'test5']], $result);
-    }
-
     public function test_tokenize()
     {
         $resolver = $this->getResolver('root');
@@ -76,339 +42,424 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         $result = $resolver->tokenize(['test and test2']);
         self::assertEquals([
             [ResolverInterface::T_EXPR => 'test'],
-            [ResolverInterface::T_AND => 'and'],
-            [ResolverInterface::T_EXPR => 'test2']
+            [ResolverInterface::T_AND => 'AND'],
+            [ResolverInterface::T_EXPR => 'test2'],
         ], $result);
 
-        $result = $resolver->tokenize(['test and test2 or test3']);
+        $result = $resolver->tokenize(['test and test2 and']);
         self::assertEquals([
             [ResolverInterface::T_EXPR => 'test'],
-            [ResolverInterface::T_AND => 'and'],
+            [ResolverInterface::T_AND => 'AND'],
             [ResolverInterface::T_EXPR => 'test2'],
-            [ResolverInterface::T_OR => 'or'],
-            [ResolverInterface::T_EXPR => 'test3'],
+            [ResolverInterface::T_AND => 'AND'],
         ], $result);
     }
 
-    public function test_unpack_conditions()
+    public function test_create_graph()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack('id = 1');
+        $result = $resolver->createGraph('test');
         self::assertEquals([
-            ['root.id = 1'],
-        ], $result['conditions']);
+            ResolverInterface::T_AND => ['test']
+        ], $result);
 
-        $result = $resolver->unpack('id = 1 and id IS NULL');
+        $result = $resolver->createGraph('test and (test2 or test3)');
         self::assertEquals([
-            [
-            'root.id = 1 and ',
-            'and',
-            'root.id IS NULL',
+            ResolverInterface::T_AND => [
+                'test',
+                [
+                    ResolverInterface::T_OR => [
+                        'test2',
+                        'test3',
+                    ]
+                ]
+            ],
+        ], $result);
+    }
+
+    public function dataMultipleLogicalOnSameLevel()
+    {
+        return array(
+            array('test and test2 or test3'),
+            array('test or test2 and test3'),
+            array('test and (test2 or test3 and test4)'),
+            array('test and (test2 and test3 or test4)'),
+        );
+    }
+
+    /**
+     * @dataProvider dataMultipleLogicalOnSameLevel
+     * @expectedException \Exception
+     * @param string $string
+     */
+    public function test_create_graph_disallow_multiple_logical_on_same_level($string)
+    {
+        $resolver = $this->getResolver('root');
+
+        $resolver->createGraph($string);
+    }
+
+    public function test_resolve_string()
+    {
+        $resolver = $this->getResolver('root');
+
+        $result = $resolver->resolve('id = 1');
+        self::assertEquals([
+            ResolverInterface::T_AND => ['root.id = 1' => null],
+        ], $result['expressions']);
+
+        $result = $resolver->resolve('id = 1 and id IS NULL');
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = 1' => null,
+                'root.id IS NULL' => null,
             ]
-        ], $result['conditions']);
-//
-//        $result = $resolver->unpack(array('id = 1', 'id IS NULL'));
-//        self::assertEquals([
-//            'root.id = 1',
-//            'root.id IS NULL',
-//        ], $result['conditions']);
-//
-//        $result = $resolver->unpack('root.id = 1 and root.id IS NULL');
-//        self::assertEquals([
-//            'root.id = 1',
-//            'root.id IS NULL',
-//        ], $result['conditions']);
-//
-//        $result = $resolver->unpack('root.id = 1 and (id IS NULL or root.active = false)');
-//        self::assertEquals([
-//            'and' => [
-//                'root.id = 1',
-//                'root.id IS NULL or root.active = false',
-//            ]
-//        ], $result['conditions']);
+        ], $result['expressions']);
+
+        $result = $resolver->resolve('id = 1 or id IS NULL');
+        self::assertEquals([
+            ResolverInterface::T_OR => [
+                'root.id = 1' => null,
+                'root.id IS NULL' => null,
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve('root.id = 1 and root.id IS NULL');
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = 1' => null,
+                'root.id IS NULL' => null,
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_condition_with_root_in_name()
+    public function test_resolve_string_braces()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack('rootAlias = 1');
-        self::assertEquals(array(
-            'root.rootAlias = 1',
-        ), $result['conditions']);
+        $result = $resolver->resolve('root.id = 1 and (id IS NULL or root.active = false)');
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = 1' => null,
+                [
+                    ResolverInterface::T_OR => [
+                        'root.id IS NULL' => null,
+                        'root.active = false' => null,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve('root.id = 1 or (id IS NULL and root.active = false)');
+        self::assertEquals([
+            ResolverInterface::T_OR => [
+                'root.id = 1' => null,
+                [
+                    ResolverInterface::T_AND => [
+                        'root.id IS NULL' => null,
+                        'root.active = false' => null,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_conditions_with_parameters()
+    public function test_resolve_array()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('id' => 1));
-        self::assertEquals(array(
-            'root.id = ?1',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-        ), $result['parameters']);
+        $result = $resolver->resolve(array('id = 1', 'id IS NULL'));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = 1' => null,
+                'root.id IS NULL' => null,
+            ]
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array('root.id' => 1));
-        self::assertEquals(array(
-            'root.id = ?1',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-        ), $result['parameters']);
-
-        $result = $resolver->unpack(array('root.id' => 1, 'root.name' => 'tester'));
-        self::assertEquals(array(
-            'root.id = ?1',
-            'root.name = ?2',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            2 => 'tester',
-        ), $result['parameters']);
+        $result = $resolver->resolve(array('id = 1', 'test = 1 or tester = 2'));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = 1' => null,
+                ResolverInterface::T_OR => [
+                    'root.test = 1' => null,
+                    'root.tester = 2' => null,
+                ]
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_conditions_with_named_parameters()
+    public function test_resolve_string_with_value()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('id = :test' => 1));
-        self::assertEquals(array(
-            'root.id = :test',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            'test' => 1,
-        ), $result['parameters']);
+        $result = $resolver->resolve(array('id' => 1));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1
+            ]
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array('id = :test' => array('test' => 1)));
-        self::assertEquals(array(
-            'root.id = :test',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            'test' => 1,
-        ), $result['parameters']);
+        $result = $resolver->resolve(array('id =' => 1));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1
+            ]
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array(
-            'id = :test' => 1,
-            'name = :name' => 'tester',
-        ));
-        self::assertEquals(array(
-            'root.id = :test',
-            'root.name = :name',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            'test' => 1,
-            'name' => 'tester',
-        ), $result['parameters']);
+        $result = $resolver->resolve(array('id = :id' => ['id' => 1]));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(['root.id in' => ['test']]);
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id IN ?' => 'test',
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_conditions_with_mixed_parameters()
+    public function test_create_query_expression()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('id' => 1, 'name = :name' => 'tester'));
-        self::assertEquals(array(
-            'root.id = ?1',
-            'root.name = :name',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            'name' => 'tester',
-        ), $result['parameters']);
+        $queryBuilder = new QueryBuilder();
+        $expr = $resolver->createQueryExpression($queryBuilder, $resolver->resolve(array('id' => 1))['expressions']);
+        $parts = $expr->getParts();
+        self::assertEquals(1, count($parts));
+        /** @var \Doctrine\ORM\Query\Expr\Comparison $comp */
+        $comp = $parts[0];
+        self::assertInstanceOf('Doctrine\ORM\Query\Expr\Comparison', $parts[0]);
+        self::assertEquals('root.id', $comp->getLeftExpr());
+        self::assertEquals('=', $comp->getOperator());
+        self::assertEquals('?1', $comp->getRightExpr());
 
-        $result = $resolver->unpack(array('id' => 1, 'name = :name' => 'tester', 'parent' => 2));
-        self::assertEquals(array(
-            'root.id = ?1',
-            'root.name = :name',
-            'root.parent = ?2',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            'name' => 'tester',
-            2 => 2,
-        ), $result['parameters']);
+        $queryBuilder = new QueryBuilder();
+        $expr = $resolver->createQueryExpression($queryBuilder, $resolver->resolve(array('id =' => 1))['expressions']);
+        $parts = $expr->getParts();
+        self::assertEquals(1, count($parts));
+        /** @var \Doctrine\ORM\Query\Expr\Comparison $comp */
+        $comp = $parts[0];
+        self::assertInstanceOf('Doctrine\ORM\Query\Expr\Comparison', $parts[0]);
+        self::assertEquals('root.id', $comp->getLeftExpr());
+        self::assertEquals('=', $comp->getOperator());
+        self::assertEquals('?1', $comp->getRightExpr());
+
+        $queryBuilder = new QueryBuilder();
+        $expr = $resolver->createQueryExpression($queryBuilder, $resolver->resolve(array('id = :id' => ['id' => 1]))['expressions']);
+        $parts = $expr->getParts();
+        self::assertEquals(1, count($parts));
+        /** @var \Doctrine\ORM\Query\Expr\Comparison $comp */
+        $comp = $parts[0];
+        self::assertInstanceOf('Doctrine\ORM\Query\Expr\Comparison', $parts[0]);
+        self::assertEquals('root.id', $comp->getLeftExpr());
+        self::assertEquals('=', $comp->getOperator());
+        self::assertEquals(':id', $comp->getRightExpr());
+
+        $queryBuilder = new QueryBuilder();
+        $expr = $resolver->createQueryExpression($queryBuilder, $resolver->resolve(array('id IS NULL'))['expressions']);
+        $parts = $expr->getParts();
+        self::assertEquals(1, count($parts));
+        self::assertEquals('root.id IS NULL', $parts[0]);
+
+        $queryBuilder = new QueryBuilder();
+        $expr = $resolver->createQueryExpression($queryBuilder, $resolver->resolve(array('id IN :ids' => ['ids' => [1]]))['expressions']);
+        $parts = $expr->getParts();
+        self::assertEquals(1, count($parts));
+        /** @var \Doctrine\ORM\Query\Expr\Func $comp */
+        $comp = $parts[0];
+        self::assertInstanceOf('Doctrine\ORM\Query\Expr\Func', $parts[0]);
+        self::assertEquals('root.id IN', $comp->getName());
+        self::assertEquals(':ids', $comp->getArguments()[0]);
     }
 
-    public function test_unpack_conditions_with_multiple_parameters_in_single_condition()
+    public function test_resolve_condition_with_root_in_name()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('id = :id AND name = :name' => array('id' => 1, 'name' => 'tester')));
-        self::assertEquals(array(
-            'root.id = :id',
-            'root.name = :name',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            'id' => 1,
-            'name' => 'tester',
-        ), $result['parameters']);
-
-        $result = $resolver->unpack(array('id = :id AND active = true' => array('id' => 1)));
-        self::assertEquals(array(
-            'root.id = :id',
-            'root.active = true',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            'id' => 1,
-        ), $result['parameters']);
+        $result = $resolver->resolve('rootId = 1');
+        self::assertEquals([
+            ResolverInterface::T_AND => ['root.rootId = 1' => null],
+        ], $result['expressions']);
     }
 
-    public function test_unpack_joins()
+    public function test_resolve_conditions_with_parameters()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('messages'));
-        self::assertEquals(array(
-            'root.messages' => 'messages',
-        ), $result['joins']);
-        self::assertEquals(array(), $result['conditions']);
+        $result = $resolver->resolve(array('root.id' => 1));
+        self::assertEquals([
+            ResolverInterface::T_AND => ['root.id = ?' => 1],
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array('messages.user'));
-        self::assertEquals(array(
-            'root.messages' => 'messages',
-            'messages.user' => 'user',
-        ), $result['joins']);
-        self::assertEquals(array(), $result['conditions']);
+        $result = $resolver->resolve(array('id' => 1, 'name' => 'tester'));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1,
+                'root.name = ?' => 'tester',
+            ],
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array('orders.client.user'));
-        self::assertEquals(array(
-            'root.orders' => 'orders',
-            'orders.client' => 'client',
-            'client.user' => 'user',
-        ), $result['joins']);
-        self::assertEquals(array(), $result['conditions']);
+        $result = $resolver->resolve(array('id = ?' => 1, 'name = ?' => 'tester'));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1,
+                'root.name = ?' => 'tester',
+            ],
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(array('root.id and root.id IS NULL' => 1));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1,
+                'root.id IS NULL' => null,
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(array('root.id = ? and root.id IS NULL' => 1));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1,
+                'root.id IS NULL' => null,
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_joins_through_conditions()
+    public function test_resolve_conditions_with_parameters_and_braces()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array('messages.id' => 1));
-        self::assertEquals(array(
-            'root.messages' => 'messages'
-        ), $result['joins']);
-        self::assertEquals(array(
-            'messages.id = ?1'
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1
-        ), $result['parameters']);
+        $result = $resolver->resolve(['id = ? and (id IS NULL or active = ?)' => [1, false]]);
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = ?' => 1,
+                [
+                    ResolverInterface::T_OR => [
+                        'root.id IS NULL' => null,
+                        'root.active = ?' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array('messages.user.id' => 1));
-        self::assertEquals(array(
-            'root.messages' => 'messages',
-            'messages.user' => 'user',
-        ), $result['joins']);
-        self::assertEquals(array(
-            'user.id = ?1'
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1
-        ), $result['parameters']);
-
-        $result = $resolver->unpack(array(
-            'messages.user.id' => 1,
-            'orders.client.id' => 2,
-        ));
-        self::assertEquals(array(
-            'root.messages' => 'messages',
-            'messages.user' => 'user',
-            'root.orders' => 'orders',
-            'orders.client' => 'client',
-        ), $result['joins']);
-        self::assertEquals(array(
-            'user.id = ?1',
-            'client.id = ?2',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            2 => 2,
-        ), $result['parameters']);
-
-        $result = $resolver->unpack(array(
-            'messages.user.id' => 1,
-            'orders.client.id = :client' => 2,
-        ));
-        self::assertEquals(array(
-            'root.messages' => 'messages',
-            'messages.user' => 'user',
-            'root.orders' => 'orders',
-            'orders.client' => 'client',
-        ), $result['joins']);
-        self::assertEquals(array(
-            'user.id = ?1',
-            'client.id = :client',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            'client' => 2,
-        ), $result['parameters']);
+        $result = $resolver->resolve(['id = ? or (id IS NULL and active = ?)' => [1, false]]);
+        self::assertEquals([
+            ResolverInterface::T_OR => [
+                'root.id = ?' => 1,
+                [
+                    ResolverInterface::T_AND => [
+                        'root.id IS NULL' => null,
+                        'root.active = ?' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
     }
 
-    public function test_unpack_conditions_with_mixed_parameters_and_joins()
+    public function test_resolve_conditions_with_named_parameters()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array(
-            'id' => 1,
-            'name = :name' => 'tester',
-            'relation',
-        ));
-        self::assertEquals(array(
-            'root.id = ?1',
-            'root.name = :name',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            'name' => 'tester',
-        ), $result['parameters']);
-        self::assertEquals(array(
-            'root.relation' => 'relation',
-        ), $result['joins']);
+        $result = $resolver->resolve(array('id = :id' => ['id' => 1]));
+        self::assertEquals([
+            ResolverInterface::T_AND => ['root.id = :id' => 1],
+        ], $result['expressions']);
 
-        $result = $resolver->unpack(array(
-            'relationOne',
-            'relationOne.test',
-            'id' => 1,
-            'name = :name' => 'tester',
-            'relationTwo',
-            'parent' => 2
-        ));
-        self::assertEquals(array(
-            'root.id = ?1',
-            'root.name = :name',
-            'root.parent = ?2',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 1,
-            'name' => 'tester',
-            2 => 2,
-        ), $result['parameters']);
-        self::assertEquals(array(
-            'root.relationOne' => 'relationOne',
-            'relationOne.test' => 'test',
-            'root.relationTwo' => 'relationTwo',
-        ), $result['joins']);
+        $result = $resolver->resolve(array('id = :id' => ['id' => 1], 'name = :name' => ['name' => 'tester']));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                'root.name = :name' => 'tester',
+            ],
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(array('root.id = :id' => ['id' => 1], 'root.name = :name' => ['name' => 'tester']));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                'root.name = :name' => 'tester',
+            ],
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(array('root.id = :id' => ['id' => 1], 'root.name IS NULL'));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                'root.name IS NULL' => null,
+            ],
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(array('root.id = :id and name IS NULL' => ['id' => 1]));
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                'root.name IS NULL' => null,
+            ],
+        ], $result['expressions']);
     }
 
-    public function test_unpack_order_by()
+    public function test_resolve_conditions_with_named_parameters_and_braces()
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->unpack(array(
-            'id' => 'DESC',
-            'name',
-        ));
-        self::assertEquals(array(
-            'root.id = ?1',
-        ), $result['conditions']);
-        self::assertEquals(array(
-            1 => 'DESC',
-        ), $result['parameters']);
-        self::assertEquals(array(
-            'root.name' => 'name',
-        ), $result['joins']);
+        $result = $resolver->resolve(['id = :id and (id IS NULL or active = :active)' => ['id' => 1, 'active' => false]]);
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                [
+                    ResolverInterface::T_OR => [
+                        'root.id IS NULL' => null,
+                        'root.active = :active' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(['id = :id or (id IS NULL and active = :active)' => ['id' => 1, 'active' => false]]);
+        self::assertEquals([
+            ResolverInterface::T_OR => [
+                'root.id = :id' => 1,
+                [
+                    ResolverInterface::T_AND => [
+                        'root.id IS NULL' => null,
+                        'root.active = :active' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
+    }
+
+    public function test_resolve_conditions_with_mixed_parameters()
+    {
+        $resolver = $this->getResolver('root');
+
+        $result = $resolver->resolve(['id = :id and (id IS NULL or active = ?)' => ['id' => 1, false]]);
+        self::assertEquals([
+            ResolverInterface::T_AND => [
+                'root.id = :id' => 1,
+                [
+                    ResolverInterface::T_OR => [
+                        'root.id IS NULL' => null,
+                        'root.active = :active' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
+
+        $result = $resolver->resolve(['id or (id IS NULL and active = :active)' => [1, 'active' => false]]);
+        self::assertEquals([
+            ResolverInterface::T_OR => [
+                'root.id = ?' => 1,
+                [
+                    ResolverInterface::T_AND => [
+                        'root.id IS NULL' => null,
+                        'root.active = :active' => false,
+                    ]
+                ]
+            ]
+        ], $result['expressions']);
     }
 }
