@@ -73,6 +73,8 @@ class AbstractDoctrineFinder extends AbstractFinder
                 return $queryBuilder->getQuery()->setMaxResults(1)->getOneOrNullResult();
             case 'paginator':
                 return $this->getPaginator($queryBuilder, $config['page'], $config['pageSize']);
+            case 'builder':
+                return $queryBuilder;
             default:
                 return $queryBuilder->getQuery()->getResult();
         }

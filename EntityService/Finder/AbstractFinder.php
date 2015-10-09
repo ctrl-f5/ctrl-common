@@ -138,4 +138,18 @@ abstract class AbstractFinder implements FinderInterface
 
         return $this;
     }
+
+    /**
+     * @param int $page
+     * @param int|null $pageSize
+     * @return $this
+     */
+    public function queryBuilder()
+    {
+        $this->resetResultTypeConfig();
+
+        $this->resultType = 'builder';
+
+        return $this;
+    }
 }
