@@ -23,20 +23,22 @@ interface ResolverInterface
     public function setRootAlias($rootAlias);
 
     /**
-     * Apply Filter criteria
-     *
-     * @param mixed $subject
-     * @param array $criteria
-     * @return $this
+     * @param $expressions
+     * @return mixed
      */
-    public function applyCriteria($subject, array $criteria = array());
+    public function tokenize($expressions);
 
     /**
-     * Apply Ordering criteria
-     *
-     * @param mixed $subject
-     * @param array $orderBy
-     * @return $this
+     * @param string $expression
+     * @param bool $isTokens
+     * @return array
      */
-    public function applyOrderBy($subject, array $orderBy = array());
+    public function createGraph($expression, $isTokens = false);
+
+    /**
+     * @param array|string $criteria
+     * @param string $type self::T_AND or self::T_OR
+     * @return array [ joins => [], expressions => [] ]
+     */
+    public function resolve($criteria, $type = self::T_AND);
 }
