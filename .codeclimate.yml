@@ -1,6 +1,3 @@
-ratings:
-  - "**.php"
-
 exclude_paths:
   - "vendor"
   - "Test/*"
