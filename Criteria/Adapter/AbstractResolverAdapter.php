@@ -5,7 +5,7 @@ namespace Ctrl\Common\Criteria\Adapter;
 use Ctrl\Common\Criteria\ResolverInterface;
 use Doctrine\ORM\Query\Expr;
 
-abstract class AbstractAdapter implements AdapterInterface
+abstract class AbstractResolverAdapter implements ResolverAdapterInterface
 {
     /**
      * @var ResolverInterface

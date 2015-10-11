@@ -2,10 +2,9 @@
 
 namespace Ctrl\Common\Criteria;
 
-use Ctrl\Common\Tools\ArrayHelper;
 use Ctrl\Common\Tools\StringHelper;
 use Doctrine\ORM\Query\Expr;
-use Doctrine\ORM\QueryBuilder;
+use Ctrl\Common\Criteria\InvalidCriteriaException;
 
 class Resolver implements ResolverInterface
 {
@@ -14,9 +13,12 @@ class Resolver implements ResolverInterface
      */
     protected $rootAlias;
 
+    /**
+     * @param string $rootAlias
+     */
     public function __construct($rootAlias)
     {
-        $this->rootAlias = $rootAlias;
+        $this->setRootAlias($rootAlias);
     }
 
     /**
@@ -37,7 +39,11 @@ class Resolver implements ResolverInterface
         return $this;
     }
 
-    public function tokenize($expressions)
+    /**
+     * @param array $expressions
+     * @return array
+     */
+    public function tokenize(array $expressions)
     {
         $tokens = array();
 
@@ -76,6 +82,12 @@ class Resolver implements ResolverInterface
         return $tokens;
     }
 
+    /**
+     * @param string $expression
+     * @param bool $isTokens
+     * @return array
+     * @throws InvalidCriteriaException
+     */
     public function createGraph($expression, $isTokens = false)
     {
         if ($isTokens) {
@@ -105,14 +117,14 @@ class Resolver implements ResolverInterface
             }
             if ($type === self::T_OR) {
                 if ($usedLogical === self::T_AND) {
-                    throw new \Exception('can not use AND and OR in the same part of condition without braces');
+                    throw new InvalidCriteriaException('can not use AND and OR in the same part of condition without braces');
                 }
                 $logical = self::T_OR;
                 $usedLogical = self::T_OR;
             }
             if ($type === self::T_AND) {
                 if ($usedLogical === self::T_OR) {
-                    throw new \Exception('can not use AND and OR in the same part of condition without braces');
+                    throw new InvalidCriteriaException('can not use AND and OR in the same part of condition without braces');
                 }
                 $usedLogical = self::T_AND;
             }
@@ -123,6 +135,13 @@ class Resolver implements ResolverInterface
         ];
     }
 
+    /**
+     * @param array $graph
+     * @param array $values
+     * @param int $currentKey
+     * @return array
+     * @throws InvalidCriteriaException
+     */
     protected function parseGraph(array $graph = array(), array &$values, &$currentKey)
     {
         $type   = key($graph);
@@ -141,7 +160,7 @@ class Resolver implements ResolverInterface
                     $val = $values[$config['param_name']];
                 } else {
                     if (!array_key_exists($currentKey, $values)) {
-                        throw new \InvalidArgumentException(sprintf('no value found for expression: %s', $config['expression']));
+                        throw new InvalidCriteriaException(sprintf('no value found for expression: %s', $config['expression']));
                     }
                     $val = $values[$currentKey];
                     $currentKey++;
@@ -174,7 +193,11 @@ class Resolver implements ResolverInterface
         ];
     }
 
-    protected function mergeJoinPaths($joins)
+    /**
+     * @param array $joins
+     * @return array
+     */
+    protected function mergeJoinPaths(array $joins)
     {
         $merged = array();
         foreach ($joins as $path) {
@@ -320,7 +343,13 @@ class Resolver implements ResolverInterface
         );
     }
 
-    protected function mergeExpressions($one, $two, $merge = null)
+    /**
+     * @param array $one
+     * @param array $two
+     * @param string $merge
+     * @return array
+     */
+    protected function mergeExpressions(array $one, array $two, $merge = null)
     {
         $key = key($two);
         $values = $two[$key];

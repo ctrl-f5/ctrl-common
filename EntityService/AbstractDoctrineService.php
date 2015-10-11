@@ -3,7 +3,8 @@
 namespace Ctrl\Common\EntityService;
 
 use Ctrl\Common\Criteria\DoctrineResolver;
-use Ctrl\Common\EntityService\Finder\AbstractDoctrineFinder;
+use Ctrl\Common\EntityService\Finder\AbstractFinder;
+use Ctrl\Common\EntityService\Finder\Doctrine\Finder;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
 use Ctrl\Common\Tools\Doctrine\Paginator;
 use Doctrine\Common\Persistence\ObjectManager;
@@ -37,7 +38,7 @@ abstract class AbstractDoctrineService implements ServiceInterface
     /**
      * @return string
      */
-    abstract function getEntityClass();
+    abstract public function getEntityClass();
 
     /**
      * @return string
@@ -78,12 +79,12 @@ abstract class AbstractDoctrineService implements ServiceInterface
     }
 
     /**
-     * @return AbstractDoctrineFinder|FinderInterface
+     * @return FinderInterface
      */
     public function getFinder()
     {
         if (!$this->finder) {
-            $this->finder = new AbstractDoctrineFinder(
+            $this->finder = new Finder(
                 $this->getEntityRepository(),
                 $this->getRootAlias()
             );
@@ -95,13 +96,14 @@ abstract class AbstractDoctrineService implements ServiceInterface
     /**
      * @param object $entity
      * @return bool
+     * @throws \InvalidArgumentException
      */
     public function assertEntityInstance($entity)
     {
         $class = $this->getEntityClass();
         if (!(is_object($entity) && $entity instanceof $class)) {
             throw new \InvalidArgumentException(
-                sprintf("Service can only handle entities of class %s", $class)
+                sprintf('Service can only handle entities of class %s', $class)
             );
         }
     }

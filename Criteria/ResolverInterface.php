@@ -26,7 +26,7 @@ interface ResolverInterface
      * @param $expressions
      * @return mixed
      */
-    public function tokenize($expressions);
+    public function tokenize(array $expressions);
 
     /**
      * @param string $expression

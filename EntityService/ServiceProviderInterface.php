@@ -2,7 +2,7 @@
 
 namespace Ctrl\Common\EntityService;
 
-interface EntityServiceProviderInterface
+interface ServiceProviderInterface
 {
     /**
      * @return ServiceInterface

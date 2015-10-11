@@ -4,7 +4,7 @@ namespace Ctrl\Common\Criteria\Adapter;
 
 use Ctrl\Common\Criteria\ResolverInterface;
 
-interface AdapterInterface
+interface ResolverAdapterInterface
 {
     /**
      * @param ResolverInterface $resolver

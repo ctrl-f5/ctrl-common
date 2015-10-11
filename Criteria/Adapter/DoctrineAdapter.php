@@ -2,11 +2,12 @@
 
 namespace Ctrl\Common\Criteria\Adapter;
 
+use Ctrl\Common\Criteria\InvalidCriteriaException;
 use Ctrl\Common\Criteria\ResolverInterface;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 
-class DoctrineAdapter extends AbstractAdapter
+class DoctrineAdapter extends AbstractResolverAdapter
 {
     /**
      * @return string
@@ -52,6 +53,7 @@ class DoctrineAdapter extends AbstractAdapter
      * @param QueryBuilder $qb
      * @param array $graph
      * @return Expr\Andx|Expr\Orx|null
+     * @throws InvalidCriteriaException
      */
     public function createQueryExpression(QueryBuilder $qb, array $graph = array())
     {
@@ -105,7 +107,7 @@ class DoctrineAdapter extends AbstractAdapter
                             $func = 'notLike';
                             break;
                         default:
-                            throw new \InvalidArgumentException(sprintf('unknown comparison: %s', $comp));
+                            throw new InvalidCriteriaException(sprintf('unknown comparison: %s', $comp));
                     }
                     if ($valueSpec === '?') {
                         $qb->setParameter($paramIndex, $value);
@@ -116,7 +118,7 @@ class DoctrineAdapter extends AbstractAdapter
                     } else if ($value === null) {
                         return $field . ' ' . $comp . ' ' . $valueSpec;
                     }
-                    throw new \InvalidArgumentException('invalid field spec: ' . $spec);
+                    throw new InvalidCriteriaException('invalid field spec: ' . $spec);
             }
             return $qb->expr()->$func($field);
 
@@ -126,7 +128,7 @@ class DoctrineAdapter extends AbstractAdapter
             } else if ($key === ResolverInterface::T_OR) {
                 $expr = $qb->expr()->orX();
             } else {
-                throw new \InvalidArgumentException('invalid graph given');
+                throw new InvalidCriteriaException('invalid graph given');
             }
 
             foreach ($graph[$key] as $sub) {

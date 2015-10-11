@@ -1,28 +1,47 @@
 <?php
 
-namespace Ctrl\Common\EntityService\Finder;
+namespace Ctrl\Common\EntityService\Finder\Doctrine;
 
-use Ctrl\Common\Criteria\DoctrineResolver;
+use Ctrl\Common\Criteria\Adapter\ResolverAdapterInterface;
+use Ctrl\Common\Criteria\Adapter\DoctrineAdapter;
+use Ctrl\Common\Criteria\Resolver;
+use Ctrl\Common\EntityService\Finder\FinderInterface;
 use Ctrl\Common\Tools\Doctrine\Paginator;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
+use EntityService\Finder\Doctrine\Result;
 
-class AbstractDoctrineFinder extends AbstractFinder
+class Finder implements FinderInterface
 {
+    /**
+     * @var string
+     */
+    private $rootAlias;
+
     /**
      * @var EntityRepository
      */
     private $repository;
 
     /**
-     * @var DoctrineResolver
+     * @var ResolverAdapterInterface
      */
-    protected $criteriaResolver;
+    private $criteriaResolver;
 
     public function __construct(EntityRepository $repository, $rootAlias)
     {
         $this->repository = $repository;
         $this->rootAlias = $rootAlias;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRootAlias()
+    {
+        return $this->rootAlias;
     }
 
     /**
@@ -37,6 +56,7 @@ class AbstractDoctrineFinder extends AbstractFinder
 
     /**
      * @return EntityRepository
+     * @throws \RuntimeException
      */
     public function getEntityRepository()
     {
@@ -48,36 +68,16 @@ class AbstractDoctrineFinder extends AbstractFinder
     }
 
     /**
-     * @return DoctrineResolver
+     * @return ResolverAdapterInterface
      */
     protected function getCriteriaResolver()
     {
         if (!$this->criteriaResolver) {
-            $this->criteriaResolver = new DoctrineResolver($this->getRootAlias());
+            $this->criteriaResolver = new DoctrineAdapter(
+                new Resolver($this->getRootAlias())
+            );
         }
         return $this->criteriaResolver;
-    }
-
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @return array|Paginator
-     */
-    protected function assertFinderResult($queryBuilder)
-    {
-        $config = $this->getResultTypeConfig();
-
-        switch ($config['type']) {
-            case 'one_or_null':
-                return $queryBuilder->getQuery()->getOneOrNullResult();
-            case 'first_or_null':
-                return $queryBuilder->getQuery()->setMaxResults(1)->getOneOrNullResult();
-            case 'paginator':
-                return $this->getPaginator($queryBuilder, $config['page'], $config['pageSize']);
-            case 'builder':
-                return $queryBuilder;
-            default:
-                return $queryBuilder->getQuery()->getResult();
-        }
     }
 
     /**
@@ -103,7 +103,7 @@ class AbstractDoctrineFinder extends AbstractFinder
     public function get($id)
     {
         $queryBuilder = $this->getBaseQueryBuilder()
-            ->andWhere($this->getRootAlias() . ".id = :id")
+            ->andWhere($this->getRootAlias() . '.id = :id')
             ->setParameter('id', $id);
 
         return $queryBuilder->getQuery()->getSingleResult();
@@ -116,6 +116,8 @@ class AbstractDoctrineFinder extends AbstractFinder
      * @param array $criteria
      * @param array $orderBy
      * @return object[]
+     * @throws NonUniqueResultException
+     * @throws NoResultException
      */
     public function getBy(array $criteria = array(), array $orderBy = array())
     {
@@ -133,7 +135,7 @@ class AbstractDoctrineFinder extends AbstractFinder
      * @pagination
      * @param array $criteria
      * @param array $orderBy
-     * @return object[]|Paginator
+     * @return Result
      */
     public function find(array $criteria = array(), array $orderBy = array())
     {
@@ -142,26 +144,6 @@ class AbstractDoctrineFinder extends AbstractFinder
             ->applyCriteria($queryBuilder, $criteria)
             ->applyOrderBy($queryBuilder, $orderBy);
 
-        var_dump($queryBuilder->getDQL());
-        var_dump($queryBuilder->getParameters()->toArray());
-
-        return $this->assertFinderResult($queryBuilder);
-    }
-
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @param int $page
-     * @param int $pageSize
-     * @param array $orderBy
-     * @return Paginator
-     */
-    protected function getPaginator(QueryBuilder $queryBuilder, $page = 1, $pageSize = 15, array $orderBy = array())
-    {
-        $this->criteriaResolver->applyOrderBy($queryBuilder, $orderBy);
-
-        $paginator = new Paginator($queryBuilder);
-        $paginator->configure($page, $pageSize);
-
-        return $paginator;
+        return new Result($queryBuilder);
     }
 }

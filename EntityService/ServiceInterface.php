@@ -9,7 +9,7 @@ interface ServiceInterface
     /**
      * @return string
      */
-    function getEntityClass();
+    public function getEntityClass();
 
     /**
      * @return string
