@@ -83,56 +83,54 @@ class Resolver implements ResolverInterface
     }
 
     /**
-     * @param string $expression
-     * @param bool $isTokens
+     * @param array|string $tokens
      * @return array
      * @throws InvalidCriteriaException
      */
-    public function createGraph($expression, $isTokens = false)
+    public function createGraph($tokens)
     {
-        if ($isTokens) {
-            $parts = $expression;
-        } else {
-            $parts = $this->tokenize(StringHelper::bracesToArray($expression));
+        if (is_string($tokens)) {
+            $tokens = $this->tokenize(StringHelper::bracesToArray($tokens));
         }
 
         $logical = self::T_AND;
         $result = [];
-        $usedLogical = null;
-        foreach ($parts as $part) {
+        foreach ($tokens as $part) {
             $type = key($part);
-            $val = $part[$type];
+
+            if ($type === self::T_AND || $type === self::T_OR) {
+                if ($logical !== $type && count($result) > 1) {
+                    throw new InvalidCriteriaException('can not use AND and OR in the same part of condition without braces');
+                }
+                $logical = $type;
+            }
+
             if ($type === self::T_EXPR) {
                 $result[] = $part;
-            } elseif ($type === self::T_COMPOUND) {
-                $sub = $this->createGraph($val, true);
-                $subKey = key($sub);
-                if (($subKey === self::T_AND || $subKey === self::T_OR) && count($sub[$subKey]) === 1) {
-                    $result[] = $sub[$subKey][0];
-                } elseif (count($sub[$subKey]) === 1) {
-                    $result[] = [self::T_EXPR => $val];
-                } else {
-                    $result[] = $sub;
-                }
             }
-            if ($type === self::T_OR) {
-                if ($usedLogical === self::T_AND) {
-                    throw new InvalidCriteriaException('can not use AND and OR in the same part of condition without braces');
-                }
-                $logical = self::T_OR;
-                $usedLogical = self::T_OR;
-            }
-            if ($type === self::T_AND) {
-                if ($usedLogical === self::T_OR) {
-                    throw new InvalidCriteriaException('can not use AND and OR in the same part of condition without braces');
-                }
-                $usedLogical = self::T_AND;
+            if ($type === self::T_COMPOUND) {
+                $result[] = $this->parseCompoundToken($part);;
             }
         }
 
         return [
             $logical => $result
         ];
+    }
+
+    protected function parseCompoundToken($token)
+    {
+        $parts = $token[self::T_COMPOUND];
+        $sub = $this->createGraph($parts, true);
+        $subKey = key($sub);
+        $isSingle = count($sub[$subKey]) === 1;
+        if ($isSingle) {
+            if ($subKey === self::T_AND || $subKey === self::T_OR) {
+                return $sub[$subKey][0];
+            }
+            return [self::T_EXPR => $parts];
+        }
+        return $sub;
     }
 
     /**

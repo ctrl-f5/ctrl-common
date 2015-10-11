@@ -29,11 +29,10 @@ interface ResolverInterface
     public function tokenize(array $expressions);
 
     /**
-     * @param string $expression
-     * @param bool $isTokens
+     * @param array|string $tokens
      * @return array
      */
-    public function createGraph($expression, $isTokens = false);
+    public function createGraph($tokens);
 
     /**
      * @param array|string $criteria
