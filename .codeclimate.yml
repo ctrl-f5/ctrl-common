@@ -3,9 +3,23 @@ languages:
   JavaScript: false
   PHP: true
   Python: false
+
 ratings:
   - "**.php"
+
 exclude_paths:
   - "vendor"
   - "Test/*"
   - ".git"
+
+engines:
+  phpmd:
+    enabled: true
+    checks:
+      CleanCode/ElseExpression:
+        enabled: false
+  phpcodesniffer:
+    enabled: true
+    checks:
+      Generic Files LineLength TooLong:
+        enabled: false
