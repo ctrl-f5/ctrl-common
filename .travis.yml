@@ -30,7 +30,6 @@ matrix:
     - env: SYMFONY_VERSION=2.8.*@dev
     - env: SYMFONY_VERSION="3.0.x-dev as 2.8"
 
-.codeclimate.yml
 engines:
   phpmd:
     enabled: true
