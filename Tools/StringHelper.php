@@ -14,9 +14,11 @@ class StringHelper
         if ($toLowerCase) $string = strtolower($string);
 
         $allowed = 'a-zA-Z0-9';
-        if ($allowDash) $allowed .= '-';
+        if ($allowDash) {
+            $allowed .= '-';
+        }
 
-        return preg_replace("/[^$allowed]+/", "", $string);
+        return preg_replace("/[^$allowed]+/", '', $string);
     }
 
     public static function bracesToArray($string, $braces = self::BRACKET_ROUND, $first = true)

@@ -112,10 +112,10 @@ class DoctrineAdapter extends AbstractResolverAdapter
                     if ($valueSpec === '?') {
                         $qb->setParameter($paramIndex, $value);
                         return $qb->expr()->$func($field, '?' . $paramIndex);
-                    } else if (strpos($valueSpec, ':') === 0) {
+                    } elseif (strpos($valueSpec, ':') === 0) {
                         $qb->setParameter(substr($valueSpec, 1), $value);
                         return $qb->expr()->$func($field, $valueSpec);
-                    } else if ($value === null) {
+                    } elseif ($value === null) {
                         return $field . ' ' . $comp . ' ' . $valueSpec;
                     }
                     throw new InvalidCriteriaException('invalid field spec: ' . $spec);
@@ -125,7 +125,7 @@ class DoctrineAdapter extends AbstractResolverAdapter
         } else {
             if ($key === ResolverInterface::T_AND) {
                 $expr = $qb->expr()->andX();
-            } else if ($key === ResolverInterface::T_OR) {
+            } elseif ($key === ResolverInterface::T_OR) {
                 $expr = $qb->expr()->orX();
             } else {
                 throw new InvalidCriteriaException('invalid graph given');

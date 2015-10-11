@@ -3,6 +3,8 @@ languages:
   JavaScript: false
   PHP: true
   Python: false
+ratings:
+- "**.php"
 exclude_paths:
-  - "vendor"
-  - "Test/*"
+- "vendor"
+- "Test/*"

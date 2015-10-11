@@ -67,7 +67,7 @@ class Resolver implements ResolverInterface
                     if ($wUpper === self::T_AND) {
                         $tokens[][self::T_AND] = self::T_AND;
                     }
-                    else if ($wUpper === self::T_OR) {
+                    elseif ($wUpper === self::T_OR) {
                         $tokens[][self::T_OR] = self::T_OR;
                     }
                 } else {
@@ -104,12 +104,12 @@ class Resolver implements ResolverInterface
             $val = $part[$type];
             if ($type === self::T_EXPR) {
                 $result[] = $part;
-            } else if ($type === self::T_COMPOUND) {
+            } elseif ($type === self::T_COMPOUND) {
                 $sub = $this->createGraph($val, true);
                 $subKey = key($sub);
                 if (($subKey === self::T_AND || $subKey === self::T_OR) && count($sub[$subKey]) === 1) {
                     $result[] = $sub[$subKey][0];
-                } else if (count($sub[$subKey]) === 1) {
+                } elseif (count($sub[$subKey]) === 1) {
                     $result[] = [self::T_EXPR => $val];
                 } else {
                     $result[] = $sub;
@@ -254,7 +254,7 @@ class Resolver implements ResolverInterface
 
         if ($conditionUpper === 'IS NULL') {
             $comp = 'IS NULL';
-        } else if ($conditionUpper === 'IS NOT NULL') {
+        } elseif ($conditionUpper === 'IS NOT NULL') {
             $comp = 'IS NOT NULL';
         } else {
             foreach (array('IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
