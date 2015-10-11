@@ -1,9 +1,3 @@
-languages:
-  Ruby: false
-  JavaScript: false
-  PHP: true
-  Python: false
-
 ratings:
   - "**.php"
 
