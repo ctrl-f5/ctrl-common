@@ -1,6 +1,6 @@
 <?php
 
-namespace EntityService\Finder;
+namespace Ctrl\Common\EntityService\Finder\Doctrine;
 
 use Doctrine\ORM\QueryBuilder;
 

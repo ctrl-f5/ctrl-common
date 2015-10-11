@@ -2,7 +2,8 @@
 
 namespace Ctrl\Common\EntityService\Finder;
 
-use EntityService\Finder\ResultInterface;
+use Ctrl\Common\EntityService\Finder\PaginatableResultInterface;
+use Ctrl\Common\EntityService\Finder\ResultInterface;
 
 interface FinderInterface
 {
@@ -18,7 +19,7 @@ interface FinderInterface
      * @pagination
      * @param array $criteria
      * @param array $orderBy
-     * @return ResultInterface
+     * @return ResultInterface|PaginatableResultInterface
      */
     public function find(array $criteria = array(), array $orderBy = array());
 

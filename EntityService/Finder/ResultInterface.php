@@ -1,8 +1,8 @@
 <?php
 
-namespace EntityService\Finder;
+namespace Ctrl\Common\EntityService\Finder;
 
-interface ResultInterface 
+interface ResultInterface
 {
     /**
      * @param int $offset
@@ -27,5 +27,5 @@ interface ResultInterface
      * @param int|null $pageSize
      * @return array|\Iterator
      */
-    public function getPage($page = 1, $pageSize = null);
+    public function getPage($page = 1, $pageSize = 15);
 }

@@ -145,26 +145,6 @@ class DoctrineAdapter extends AbstractResolverAdapter
      */
     public function applyOrderBy($queryBuilder, array $orderBy = array())
     {
-        $joins = array();
-        $orderConfig = array();
-        foreach ($orderBy as $key => $val) {
-            $root = $this->getRootAlias();
-            $field = is_string($key) ? $key: $val;
-            $order = is_string($key) ? $val: 'ASC';
-            if (strpos($field, $root . '.') !== 0) $field = $root . '.' . $field;
-
-            $config = $this->getFieldConfig($field, $this->getRootAlias());
-            $path = $config['path'];
-            array_pop($path);
-            $joins[] = $path;
-            $orderConfig[$config['field']] =  $order;
-        }
-
-        $joins = $this->mergeJoinPaths($joins);
-
-        foreach ($joins         as $join => $alias)         $queryBuilder->join($join, $alias);
-        foreach ($orderConfig   as $sortField => $order)    $queryBuilder->addOrderBy($sortField, $order);
-
         return $this;
     }
 }

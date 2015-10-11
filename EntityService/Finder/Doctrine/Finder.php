@@ -6,12 +6,11 @@ use Ctrl\Common\Criteria\Adapter\ResolverAdapterInterface;
 use Ctrl\Common\Criteria\Adapter\DoctrineAdapter;
 use Ctrl\Common\Criteria\Resolver;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
-use Ctrl\Common\Tools\Doctrine\Paginator;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
-use EntityService\Finder\Doctrine\Result;
+use Ctrl\Common\EntityService\Finder\Doctrine\Result;
 
 class Finder implements FinderInterface
 {

@@ -1,14 +1,14 @@
 <?php
 
-namespace EntityService\Finder\Doctrine;
+namespace Ctrl\Common\EntityService\Finder\Doctrine;
 
 use Ctrl\Common\Tools\Doctrine\Paginator;
 use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\QueryBuilder;
-use EntityService\Finder\PaginatableResultInterface;
-use EntityService\Finder\QueryBuilderResultInterface;
-use EntityService\Finder\ResultInterface;
+use Ctrl\Common\EntityService\Finder\PaginatableResultInterface;
+use Ctrl\Common\EntityService\Finder\Doctrine\QueryBuilderResultInterface;
+use Ctrl\Common\EntityService\Finder\ResultInterface;
 
 class Result implements ResultInterface, PaginatableResultInterface, QueryBuilderResultInterface
 {
@@ -72,7 +72,7 @@ class Result implements ResultInterface, PaginatableResultInterface, QueryBuilde
      * @param int|null $pageSize
      * @return \Iterator
      */
-    public function getPage($page = 1, $pageSize = null)
+    public function getPage($page = 1, $pageSize = 15)
     {
         return $this->getPaginator()->getIterator();
     }
@@ -82,7 +82,7 @@ class Result implements ResultInterface, PaginatableResultInterface, QueryBuilde
      * @param int|null $pageSize
      * @return Paginator
      */
-    public function getPaginator($page = 1, $pageSize = null)
+    public function getPaginator($page = 1, $pageSize = 15)
     {
         $paginator = new Paginator($this->queryBuilder);
         $paginator->configure($page, $pageSize);
