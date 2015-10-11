@@ -4,7 +4,7 @@ languages:
   PHP: true
   Python: false
 ratings:
-- "**.php"
+  - "**.php"
 exclude_paths:
-- "vendor"
-- "Test/*"
+  - "vendor"
+  - "Test/*"
