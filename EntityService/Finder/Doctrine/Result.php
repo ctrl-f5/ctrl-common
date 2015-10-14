@@ -34,6 +34,8 @@ class Result implements ResultInterface, PaginatableResultInterface, QueryBuilde
         if ($result === null) {
             throw new EntityNotFoundException;
         }
+
+        return $result;
     }
 
     /**

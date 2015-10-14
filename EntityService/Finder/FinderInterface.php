@@ -33,4 +33,16 @@ interface FinderInterface
      * @throws \Doctrine\ORM\NonUniqueResultException
      */
     public function get($id);
+
+    /**
+     * Fetches an entity based on criteria,
+     * fails if entity is not found or if criteria can select multiple entities
+     *
+     * @param array $criteria
+     * @param array $orderBy
+     * @return object
+     * @throws \Doctrine\ORM\NoResultException
+     * @throws \Doctrine\ORM\NonUniqueResultException
+     */
+    public function getBy(array $criteria = array(), array $orderBy = array());
 }
