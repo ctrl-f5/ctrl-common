@@ -169,7 +169,7 @@ class Resolver implements ResolverInterface
         } else {
             foreach ($graph[$type] as $expr) {
                 $sub = $this->parseGraph($expr, $values, $currentKey);
-                array_merge($joins, $sub['joins']);
+                $joins = array_merge($joins, $sub['joins']);
                 $subType = key($sub['expressions']);
                 if ($type === $subType) {
                     $parsed = array_merge($parsed, $sub['expressions'][$type]);
@@ -319,8 +319,10 @@ class Resolver implements ResolverInterface
             } else {
                 $graph          = $this->createGraph($expression);
                 $result         = $this->parseGraph($graph, $values, $currentValKey);
-                $joins[]        = $result['joins'];
                 $expressions    = $this->mergeExpressions($expressions, $result['expressions'], $type);
+                if (count($result['joins'])) {
+                    $joins[]        = $result['joins'];
+                }
             }
         }
 
