@@ -308,7 +308,10 @@ class Resolver implements ResolverInterface
         foreach ($criteria as $key => $val) {
             $hasValue = is_string($key);
             $expression = $hasValue ? $key: $val;
-            $values = $hasValue ? (array)$val: array();
+            $values = $hasValue ? $val: array();
+            if (!is_array($values)) {
+                $values = array($values);
+            }
             $currentValKey = 0;
 
             if (!$hasValue && strpos($expression, ' ') === false) {
