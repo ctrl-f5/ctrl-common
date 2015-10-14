@@ -38,7 +38,7 @@ class DoctrineAdapter extends AbstractResolverAdapter
             return $this;
         }
 
-        $criteria = $this->resolver->resolve($criteria);
+        $criteria = $this->resolver->resolveCriteria($criteria);
 
         foreach ($criteria['joins'] as $join => $alias) {
             $queryBuilder->join($join, $alias);
@@ -145,6 +145,17 @@ class DoctrineAdapter extends AbstractResolverAdapter
      */
     public function applyOrderBy($queryBuilder, array $orderBy = array())
     {
+        foreach ($orderBy as $field => $dir) {
+            if (is_int($field)) {
+                $field = $dir;
+                $dir = 'ASC';
+            }
+            $result = $this->resolver->resolveField($field);
+            foreach ($result['joins'] as $join => $alias) {
+                $queryBuilder->join($join, $alias);
+            }
+            $queryBuilder->addOrderBy($result['field'], $dir);
+        }
         return $this;
     }
 }

@@ -123,14 +123,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve('id = 1');
+        $result = $resolver->resolveCriteria('id = 1');
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]]
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve('id = 1 and id IS NULL');
+        $result = $resolver->resolveCriteria('id = 1 and id IS NULL');
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -138,7 +138,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve('id = 1 or id IS NULL');
+        $result = $resolver->resolveCriteria('id = 1 or id IS NULL');
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -146,7 +146,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve('root.id = 1 and root.id IS NULL');
+        $result = $resolver->resolveCriteria('root.id = 1 and root.id IS NULL');
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -159,7 +159,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve('rootId = 1');
+        $result = $resolver->resolveCriteria('rootId = 1');
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.rootId = 1' => null]],
@@ -171,7 +171,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve('root.id = 1 and (id IS NULL or root.active = false)');
+        $result = $resolver->resolveCriteria('root.id = 1 and (id IS NULL or root.active = false)');
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -184,7 +184,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve('root.id = 1 or (id IS NULL and root.active = false)');
+        $result = $resolver->resolveCriteria('root.id = 1 or (id IS NULL and root.active = false)');
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -211,12 +211,12 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ];
 
-        $result = $resolver->resolve('root.id = 1 and (id IS NULL or root.active = false) and (id IS NULL and root.active = false)');
+        $result = $resolver->resolveCriteria('root.id = 1 and (id IS NULL or root.active = false) and (id IS NULL and root.active = false)');
         self::assertEquals($expected, $result['expressions']);
-        $result = $resolver->resolve('root.id = 1 and (id IS NULL or root.active = false) and id IS NULL and root.active = false');
+        $result = $resolver->resolveCriteria('root.id = 1 and (id IS NULL or root.active = false) and id IS NULL and root.active = false');
         self::assertEquals($expected, $result['expressions']);
 
-        $result = $resolver->resolve('id = 1 or test = true or (id IS NULL and active IS NULL)', ResolverInterface::T_OR);
+        $result = $resolver->resolveCriteria('id = 1 or test = true or (id IS NULL and active IS NULL)', ResolverInterface::T_OR);
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -230,7 +230,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve('id = 1 or test = true or (id IS NULL or active IS NULL)', ResolverInterface::T_OR);
+        $result = $resolver->resolveCriteria('id = 1 or test = true or (id IS NULL or active IS NULL)', ResolverInterface::T_OR);
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -245,7 +245,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(array('id = 1', 'id IS NULL'));
+        $result = $resolver->resolveCriteria(array('id = 1', 'id IS NULL'));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -253,7 +253,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id = 1', 'test = 1 or tester = 2'));
+        $result = $resolver->resolveCriteria(array('id = 1', 'test = 1 or tester = 2'));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = 1' => null]],
@@ -269,14 +269,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(array('id' => 1));
+        $result = $resolver->resolveCriteria(array('id' => 1));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]]
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id and id' => [1, 2]));
+        $result = $resolver->resolveCriteria(array('id and id' => [1, 2]));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -284,21 +284,21 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id =' => 1));
+        $result = $resolver->resolveCriteria(array('id =' => 1));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]]
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id = :id' => ['id' => 1]));
+        $result = $resolver->resolveCriteria(array('id = :id' => ['id' => 1]));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]]
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(['root.id in' => ['test']]);
+        $result = $resolver->resolveCriteria(['root.id in' => ['test']]);
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id IN ?' => 'test']]
@@ -310,14 +310,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(array('root.id' => 1));
+        $result = $resolver->resolveCriteria(array('root.id' => 1));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id' => 1, 'name' => 'tester'));
+        $result = $resolver->resolveCriteria(array('id' => 1, 'name' => 'tester'));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -325,7 +325,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id = ?' => 1, 'name = ?' => 'tester'));
+        $result = $resolver->resolveCriteria(array('id = ?' => 1, 'name = ?' => 'tester'));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -333,7 +333,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('root.id and root.id IS NULL' => 1));
+        $result = $resolver->resolveCriteria(array('root.id and root.id IS NULL' => 1));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -341,7 +341,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('root.id = ? and root.id IS NULL' => 1));
+        $result = $resolver->resolveCriteria(array('root.id = ? and root.id IS NULL' => 1));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -354,7 +354,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(['id = ? and (id IS NULL or active = ?)' => [1, false]]);
+        $result = $resolver->resolveCriteria(['id = ? and (id IS NULL or active = ?)' => [1, false]]);
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -367,7 +367,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(['id = ? or (id IS NULL and active = ?)' => [1, false]]);
+        $result = $resolver->resolveCriteria(['id = ? or (id IS NULL and active = ?)' => [1, false]]);
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = ?' => 1]],
@@ -385,14 +385,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(array('id = :id' => ['id' => 1]));
+        $result = $resolver->resolveCriteria(array('id = :id' => ['id' => 1]));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]]
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('id = :id' => ['id' => 1], 'name = :name' => ['name' => 'tester']));
+        $result = $resolver->resolveCriteria(array('id = :id' => ['id' => 1], 'name = :name' => ['name' => 'tester']));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -400,7 +400,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('root.id = :id' => ['id' => 1], 'root.name = :name' => ['name' => 'tester']));
+        $result = $resolver->resolveCriteria(array('root.id = :id' => ['id' => 1], 'root.name = :name' => ['name' => 'tester']));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -408,7 +408,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('root.id = :id' => ['id' => 1], 'root.name IS NULL'));
+        $result = $resolver->resolveCriteria(array('root.id = :id' => ['id' => 1], 'root.name IS NULL'));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -416,7 +416,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ],
         ], $result['expressions']);
 
-        $result = $resolver->resolve(array('root.id = :id and name IS NULL' => ['id' => 1]));
+        $result = $resolver->resolveCriteria(array('root.id = :id and name IS NULL' => ['id' => 1]));
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -429,7 +429,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve(['id = :id and (id IS NULL or active = :active)' => ['id' => 1, 'active' => false]]);
+        $result = $resolver->resolveCriteria(['id = :id and (id IS NULL or active = :active)' => ['id' => 1, 'active' => false]]);
         self::assertEquals([
             ResolverInterface::T_AND => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -442,7 +442,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve(['id = :id or (id IS NULL and active = :active)' => ['id' => 1, 'active' => false]]);
+        $result = $resolver->resolveCriteria(['id = :id or (id IS NULL and active = :active)' => ['id' => 1, 'active' => false]]);
         self::assertEquals([
             ResolverInterface::T_OR => [
                 [ResolverInterface::T_EXPR => ['root.id = :id' => 1]],
@@ -460,7 +460,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = $this->getResolver('root');
 
-        $result = $resolver->resolve([
+        $result = $resolver->resolveCriteria([
             'id = :id and (id IS NULL or active = ?)' => ['id' => 1, false]
         ]);
         self::assertEquals([
@@ -475,7 +475,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ], $result['expressions']);
 
-        $result = $resolver->resolve([
+        $result = $resolver->resolveCriteria([
             'id = :id' => ['id' => 1],
             'test1 = 1 and test2 = 2',
         ], Resolver::T_OR);
@@ -504,7 +504,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
             ]
         ];
 
-        $result = $resolver->resolve([
+        $result = $resolver->resolveCriteria([
             'id' => 1,
             'id = ?' => 2,
             'id IS NULL or active = :active' => ['active' => false],
@@ -513,7 +513,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         ], Resolver::T_OR);
         self::assertEquals($expected, $result['expressions']);
 
-        $result = $resolver->resolve([
+        $result = $resolver->resolveCriteria([
             'id = ? or id = ? or (id IS NULL or active = :active) or (test = 1 or test2 = 2) or (test = 1 and test2 = 2)' =>
                 [1, 2, 'active' => false]
         ]);

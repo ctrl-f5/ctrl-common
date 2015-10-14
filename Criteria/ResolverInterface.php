@@ -39,5 +39,11 @@ interface ResolverInterface
      * @param string $type self::T_AND or self::T_OR
      * @return array [ joins => [], expressions => [] ]
      */
-    public function resolve($criteria, $type = self::T_AND);
+    public function resolveCriteria($criteria, $type = self::T_AND);
+
+    /**
+     * @param $field
+     * @return mixed
+     */
+    public function resolveField($field);
 }

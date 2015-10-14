@@ -296,7 +296,7 @@ class Resolver implements ResolverInterface
      * @param string $type
      * @return array
      */
-    public function resolve($criteria, $type = self::T_AND)
+    public function resolveCriteria($criteria, $type = self::T_AND)
     {
         if (!is_array($criteria)) {
             $criteria   = array($criteria);
@@ -338,6 +338,20 @@ class Resolver implements ResolverInterface
         return array(
             'joins' => $joins,
             'expressions' => [$type => $expressions],
+        );
+    }
+
+    /**
+     * @param $field
+     * @return array
+     */
+    public function resolveField($field)
+    {
+        $result = $this->getFieldConfig($field, $this->getRootAlias());
+
+        return array(
+            'joins' => $this->mergeJoinPaths([$result['join']]),
+            'field' => $result['field'],
         );
     }
 
