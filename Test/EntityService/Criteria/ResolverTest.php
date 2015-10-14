@@ -519,4 +519,23 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         ]);
         self::assertEquals($expected, $result['expressions']);
     }
+
+    public function test_resolve_joins()
+    {
+        $resolver = $this->getResolver('root');
+
+        $result = $resolver->resolveCriteria(['id' => 1]);
+        self::assertEquals([], $result['joins']);
+
+        $result = $resolver->resolveCriteria(['users.name' => 'test']);
+        self::assertEquals([
+            'root.users' => 'users'
+        ], $result['joins']);
+
+        $result = $resolver->resolveCriteria(['users.address.street' => 'test']);
+        self::assertEquals([
+            'root.users' => 'users',
+            'users.address' => 'address',
+        ], $result['joins']);
+    }
 }
