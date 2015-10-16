@@ -156,6 +156,7 @@ class DoctrineAdapter extends AbstractResolverAdapter
             }
             $queryBuilder->addOrderBy($result['field'], $dir);
         }
+
         return $this;
     }
 }

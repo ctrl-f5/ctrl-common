@@ -118,6 +118,11 @@ class Resolver implements ResolverInterface
         ];
     }
 
+    /**
+     * @param array $token
+     * @return array
+     * @throws InvalidCriteriaException
+     */
     protected function parseCompoundToken($token)
     {
         $parts = $token[self::T_COMPOUND];
