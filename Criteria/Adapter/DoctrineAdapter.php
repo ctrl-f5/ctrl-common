@@ -41,7 +41,7 @@ class DoctrineAdapter extends AbstractResolverAdapter
         $criteria = $this->resolver->resolveCriteria($criteria);
 
         foreach ($criteria['joins'] as $join => $alias) {
-            $queryBuilder->join($join, $alias);
+            $queryBuilder->leftJoin($join, $alias);
         }
 
         $queryBuilder->where($this->createQueryExpression($queryBuilder, $criteria['expressions']));

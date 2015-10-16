@@ -260,7 +260,7 @@ class Resolver implements ResolverInterface
         } elseif ($conditionUpper === 'IS NOT NULL') {
             $comp = 'IS NOT NULL';
         } else {
-            foreach (array('IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
+            foreach (array('LIKE', 'IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
                 if (strpos($conditionUpper, $c) === 0) {
                     $comp = $c;
                     $valueSpec = trim(substr($condition, strlen($c)));
@@ -313,7 +313,10 @@ class Resolver implements ResolverInterface
         foreach ($criteria as $key => $val) {
             $hasValue = is_string($key);
             $expression = $hasValue ? $key: $val;
-            $values = $hasValue ? (array)$val: array();
+            $values = $hasValue ? $val: array();
+            if (!is_array($values)) {
+                $values = array($values);
+            }
             $currentValKey = 0;
 
             if (!$hasValue && strpos($expression, ' ') === false) {
