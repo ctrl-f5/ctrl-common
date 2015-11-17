@@ -5,6 +5,11 @@ namespace Ctrl\Common\EntityService\Finder;
 interface ResultInterface
 {
     /**
+     * @return array
+     */
+    public function getAll();
+
+    /**
      * @param int $offset
      * @return object
      */

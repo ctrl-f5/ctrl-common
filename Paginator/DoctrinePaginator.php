@@ -1,8 +1,10 @@
 <?php
 
-namespace Ctrl\Common\Tools\Doctrine;
+namespace Ctrl\Common\Paginator;
 
-class Paginator extends \Doctrine\ORM\Tools\Pagination\Paginator
+use \Doctrine\ORM\Tools\Pagination\Paginator;
+
+class DoctrinePaginator extends Paginator implements PaginatedDataInterface
 {
     /**
      * @var int

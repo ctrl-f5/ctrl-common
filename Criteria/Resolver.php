@@ -118,6 +118,11 @@ class Resolver implements ResolverInterface
         ];
     }
 
+    /**
+     * @param array $token
+     * @return array
+     * @throws InvalidCriteriaException
+     */
     protected function parseCompoundToken($token)
     {
         $parts = $token[self::T_COMPOUND];
@@ -169,7 +174,7 @@ class Resolver implements ResolverInterface
         } else {
             foreach ($graph[$type] as $expr) {
                 $sub = $this->parseGraph($expr, $values, $currentKey);
-                array_merge($joins, $sub['joins']);
+                $joins = array_merge($joins, $sub['joins']);
                 $subType = key($sub['expressions']);
                 if ($type === $subType) {
                     $parsed = array_merge($parsed, $sub['expressions'][$type]);
@@ -255,7 +260,7 @@ class Resolver implements ResolverInterface
         } elseif ($conditionUpper === 'IS NOT NULL') {
             $comp = 'IS NOT NULL';
         } else {
-            foreach (array('IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
+            foreach (array('LIKE', 'IN', 'NOT IN', '>=', '<=', '<', '>', '=') as $c) {
                 if (strpos($conditionUpper, $c) === 0) {
                     $comp = $c;
                     $valueSpec = trim(substr($condition, strlen($c)));
@@ -296,7 +301,7 @@ class Resolver implements ResolverInterface
      * @param string $type
      * @return array
      */
-    public function resolve($criteria, $type = self::T_AND)
+    public function resolveCriteria($criteria, $type = self::T_AND)
     {
         if (!is_array($criteria)) {
             $criteria   = array($criteria);
@@ -308,7 +313,10 @@ class Resolver implements ResolverInterface
         foreach ($criteria as $key => $val) {
             $hasValue = is_string($key);
             $expression = $hasValue ? $key: $val;
-            $values = $hasValue ? (array)$val: array();
+            $values = $hasValue ? $val: array();
+            if (!is_array($values)) {
+                $values = array($values);
+            }
             $currentValKey = 0;
 
             if (!$hasValue && strpos($expression, ' ') === false) {
@@ -319,8 +327,10 @@ class Resolver implements ResolverInterface
             } else {
                 $graph          = $this->createGraph($expression);
                 $result         = $this->parseGraph($graph, $values, $currentValKey);
-                $joins[]        = $result['joins'];
                 $expressions    = $this->mergeExpressions($expressions, $result['expressions'], $type);
+                if (count($result['joins'])) {
+                    $joins[]        = $result['joins'];
+                }
             }
         }
 
@@ -338,6 +348,20 @@ class Resolver implements ResolverInterface
         return array(
             'joins' => $joins,
             'expressions' => [$type => $expressions],
+        );
+    }
+
+    /**
+     * @param $field
+     * @return array
+     */
+    public function resolveField($field)
+    {
+        $result = $this->getFieldConfig($field, $this->getRootAlias());
+
+        return array(
+            'joins' => $this->mergeJoinPaths([$result['join']]),
+            'field' => $result['field'],
         );
     }
 

@@ -138,7 +138,7 @@ class DoctrineAdapterTest extends \PHPUnit_Framework_TestCase
         self::assertSame('root.id IS NULL', $parts[0]);
 
         $queryBuilder = new QueryBuilder();
-        $expr = $adapter->createQueryExpression($queryBuilder, $this->resolver->resolve(array('id IN :ids' => ['ids' => [1]]))['expressions']);
+        $expr = $adapter->createQueryExpression($queryBuilder, $this->resolver->resolveCriteria(array('id IN :ids' => ['ids' => [1]]))['expressions']);
         $parts = $expr->getParts();
         self::assertEquals(1, count($parts));
         /** @var \Doctrine\ORM\Query\Expr\Func $comp */
@@ -150,7 +150,7 @@ class DoctrineAdapterTest extends \PHPUnit_Framework_TestCase
 
     protected function resolveExpression($expression)
     {
-        $result = $this->resolver->resolve($expression);
+        $result = $this->resolver->resolveCriteria($expression);
         return $result['expressions'];
     }
 }

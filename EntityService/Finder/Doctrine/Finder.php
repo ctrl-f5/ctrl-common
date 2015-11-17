@@ -29,6 +29,10 @@ class Finder implements FinderInterface
      */
     private $criteriaResolver;
 
+    /**
+     * @param EntityRepository $repository
+     * @param $rootAlias
+     */
     public function __construct(EntityRepository $repository, $rootAlias)
     {
         $this->repository = $repository;

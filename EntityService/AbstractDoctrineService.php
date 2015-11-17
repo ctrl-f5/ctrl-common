@@ -2,16 +2,12 @@
 
 namespace Ctrl\Common\EntityService;
 
-use Ctrl\Common\Criteria\DoctrineResolver;
-use Ctrl\Common\EntityService\Finder\AbstractFinder;
 use Ctrl\Common\EntityService\Finder\Doctrine\Finder;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
-use Ctrl\Common\Tools\Doctrine\Paginator;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\ORM\EntityRepository;
-use Doctrine\ORM\QueryBuilder;
 
 abstract class AbstractDoctrineService implements ServiceInterface
 {
