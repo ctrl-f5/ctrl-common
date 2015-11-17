@@ -2,7 +2,7 @@
 
 namespace Ctrl\Common\EntityService\Finder\Doctrine;
 
-use Ctrl\Common\Tools\Doctrine\Paginator;
+use Ctrl\Common\Paginator\DoctrinePaginator;
 use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\QueryBuilder;
@@ -82,11 +82,11 @@ class Result implements ResultInterface, PaginatableResultInterface, QueryBuilde
     /**
      * @param int $page
      * @param int|null $pageSize
-     * @return Paginator
+     * @return DoctrinePaginator
      */
     public function getPaginator($page = 1, $pageSize = 15)
     {
-        $paginator = new Paginator($this->queryBuilder);
+        $paginator = new DoctrinePaginator($this->queryBuilder);
         $paginator->configure($page, $pageSize);
 
         return $paginator;

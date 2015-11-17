@@ -2,14 +2,14 @@
 
 namespace Ctrl\Common\EntityService\Finder;
 
-use Ctrl\Common\Tools\Doctrine\Paginator;
+use Ctrl\Common\Paginator\DoctrinePaginator;
 
 interface PaginatableResultInterface
 {
     /**
      * @param int $page
      * @param int|null $pageSize
-     * @return Paginator
+     * @return DoctrinePaginator
      */
     public function getPaginator($page = 1, $pageSize = 15);
 }
