@@ -76,7 +76,7 @@ class Result implements ResultInterface, PaginatableResultInterface, QueryBuilde
      */
     public function getPage($page = 1, $pageSize = 15)
     {
-        return $this->getPaginator()->getIterator();
+        return $this->getPaginator($page, $pageSize)->getIterator();
     }
 
     /**
