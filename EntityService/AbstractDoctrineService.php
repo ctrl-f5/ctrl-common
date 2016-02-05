@@ -2,6 +2,7 @@
 
 namespace Ctrl\Common\EntityService;
 
+use Ctrl\Common\Entity\EntityInterface;
 use Ctrl\Common\EntityService\Finder\Doctrine\Finder;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
 use Ctrl\Common\EntityService\Finder\PaginatableResultInterface;
@@ -99,6 +100,15 @@ abstract class AbstractDoctrineService implements ServiceInterface
     public function find(array $criteria = array(), array $orderBy = array())
     {
         return $this->getFinder()->find($criteria, $orderBy);
+    }
+
+    /**
+     * @param $id
+     * @return EntityInterface
+     */
+    public function findOneById($id)
+    {
+        return $this->getFinder()->get($id);
     }
 
     /**

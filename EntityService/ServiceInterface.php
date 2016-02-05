@@ -2,6 +2,7 @@
 
 namespace Ctrl\Common\EntityService;
 
+use Ctrl\Common\Entity\EntityInterface;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
 use Ctrl\Common\EntityService\Finder\ResultInterface;
 
@@ -18,7 +19,7 @@ interface ServiceInterface
     public function getRootAlias();
 
     /**
-     * @param object $entity
+     * @param EntityInterface $entity
      * @return bool
      */
     public function assertEntityInstance($entity);
@@ -36,14 +37,20 @@ interface ServiceInterface
     public function find(array $criteria = array(), array $orderBy = array());
 
     /**
-     * @param object|int $idOrEntity
+     * @param int $id
+     * @return EntityInterface
+     */
+    public function findOneById($id);
+
+    /**
+     * @param EntityInterface|int $idOrEntity
      * @param bool $failOnNotFound
      * @return $this
      */
     public function remove($idOrEntity, $failOnNotFound = false);
 
     /**
-     * @param object $entity
+     * @param EntityInterface $entity
      * @param bool $flush
      * @return $this
      */
