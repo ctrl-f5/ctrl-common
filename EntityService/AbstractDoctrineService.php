@@ -4,6 +4,8 @@ namespace Ctrl\Common\EntityService;
 
 use Ctrl\Common\EntityService\Finder\Doctrine\Finder;
 use Ctrl\Common\EntityService\Finder\FinderInterface;
+use Ctrl\Common\EntityService\Finder\PaginatableResultInterface;
+use Ctrl\Common\EntityService\Finder\ResultInterface;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityNotFoundException;
@@ -87,6 +89,16 @@ abstract class AbstractDoctrineService implements ServiceInterface
         }
 
         return $this->finder;
+    }
+
+    /**
+     * @param array $criteria
+     * @param array $orderBy
+     * @return PaginatableResultInterface|ResultInterface
+     */
+    public function find(array $criteria = array(), array $orderBy = array())
+    {
+        return $this->getFinder()->find($criteria, $orderBy);
     }
 
     /**

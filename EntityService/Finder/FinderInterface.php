@@ -2,9 +2,6 @@
 
 namespace Ctrl\Common\EntityService\Finder;
 
-use Ctrl\Common\EntityService\Finder\PaginatableResultInterface;
-use Ctrl\Common\EntityService\Finder\ResultInterface;
-
 interface FinderInterface
 {
     /**
