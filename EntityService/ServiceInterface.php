@@ -3,6 +3,7 @@
 namespace Ctrl\Common\EntityService;
 
 use Ctrl\Common\EntityService\Finder\FinderInterface;
+use Ctrl\Common\EntityService\Finder\ResultInterface;
 
 interface ServiceInterface
 {
@@ -26,6 +27,13 @@ interface ServiceInterface
      * @return FinderInterface
      */
     public function getFinder();
+
+    /**
+     * @param array $criteria
+     * @param array $orderBy
+     * @return ResultInterface
+     */
+    public function find(array $criteria = array(), array $orderBy = array());
 
     /**
      * @param object|int $idOrEntity

@@ -5,7 +5,7 @@ namespace Ctrl\Common\EntityService\Finder;
 interface ResultInterface
 {
     /**
-     * @return array
+     * @return array|\Iterator
      */
     public function getAll();
 
