@@ -16,9 +16,13 @@
         "doctrine/orm": "~2.2,>=2.2.3,<2.5"
     },
     "require-dev": {
-        "codeclimate/php-test-reporter": "dev-master"
+        "codeclimate/php-test-reporter": "dev-master",
+        "phpunit/phpunit": "^5.2"
     },
     "autoload": {
-        "psr-4": { "Ctrl\\Common\\": "" }
+        "psr-4": {
+            "Ctrl\\Common\\": "src/",
+            "Ctrl\\Common\\Test\\": "test/"
+        }
     }
 }
