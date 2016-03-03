@@ -1,4 +1,9 @@
 services:
+
+    #
+    # Console Commands
+    #
+
     ctrl.command.db_dump:
         class: Ctrl\Common\Command\DatabaseDumpCommand
         tags:
