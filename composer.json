@@ -12,8 +12,8 @@
         }
     ],
     "require": {
-        "php": ">=5.4",
-        "doctrine/orm": "~2.2,>=2.2.3,<2.5"
+        "php": ">=5.5.9",
+        "doctrine/orm": "^2.5"
     },
     "require-dev": {
         "codeclimate/php-test-reporter": "dev-master",
@@ -23,6 +23,11 @@
         "psr-4": {
             "Ctrl\\Common\\": "src/",
             "Ctrl\\Common\\Test\\": "test/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.0-dev"
         }
     }
 }
