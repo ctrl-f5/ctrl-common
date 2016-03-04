@@ -1,20 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<phpunit bootstrap="./Test/bootstrap.php" colors="true">
+<phpunit bootstrap="./test/bootstrap.php" colors="true">
     <testsuites>
         <testsuite name="CtrlCommon test suite">
-            <directory suffix="Test.php">./Test</directory>
+            <directory suffix="Test.php">./test</directory>
         </testsuite>
     </testsuites>
 
     <filter>
         <whitelist>
-            <directory>./</directory>
-            <exclude>
-                <directory>./Resources</directory>
-                <directory>./Test</directory>
-                <directory>./vendor</directory>
-            </exclude>
+            <directory>src/</directory>
         </whitelist>
     </filter>
 </phpunit>
